@@ -1,9 +1,16 @@
 package main
 
 import (
-	"fmt"
+	"log"
+	"os"
+
+	"github.com/kaviraj-j/duoplay/internal/app"
 )
 
 func main() {
-	fmt.Println("Hello from DuoPlay")
+	application, err := app.NewApp()
+	if err != nil {
+		log.Fatal(err)
+	}
+	os.Exit(application.Run())
 }
