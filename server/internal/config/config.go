@@ -6,7 +6,7 @@ type Config struct {
 	ServerAddress string `mapstructure:"SERVER_ADDRESS"`
 }
 
-// Load function loads the configs from env file and return Config type reference
+// Load function loads the configs from env file and return Config
 func Load(path string) (Config, error) {
 	var config Config
 	viper.AddConfigPath(path)

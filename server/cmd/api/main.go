@@ -2,15 +2,24 @@ package main
 
 import (
 	"log"
-	"os"
 
 	"github.com/kaviraj-j/duoplay/internal/app"
+	"github.com/kaviraj-j/duoplay/internal/config"
 )
 
 func main() {
-	application, err := app.NewApp()
+	// load config
+	config, err := config.Load(".")
 	if err != nil {
 		log.Fatal(err)
 	}
-	os.Exit(application.Run())
+
+	// create new app with config
+	app, err := app.Create(&config)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// run app
+	app.Run()
 }
