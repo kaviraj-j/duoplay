@@ -7,13 +7,15 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/kaviraj-j/duoplay/internal/config"
 	"github.com/kaviraj-j/duoplay/internal/handler"
+	"github.com/kaviraj-j/duoplay/internal/middleware"
 	"github.com/kaviraj-j/duoplay/internal/repository"
 	"github.com/kaviraj-j/duoplay/internal/service"
 )
 
 type App struct {
-	config      *config.Config
-	userHandler *handler.UserHandler
+	config         *config.Config
+	userHandler    *handler.UserHandler
+	authMiddleware *middleware.AuthMiddleWare
 }
 
 // creates new app
@@ -25,9 +27,11 @@ func Create(config *config.Config) (*App, error) {
 		return nil, err
 	}
 	userHandler := handler.NewUserHandler(&userService)
+	authMiddleware := middleware.NewAuthMiddleware(userService)
 	app := &App{
-		config:      config,
-		userHandler: userHandler,
+		config:         config,
+		userHandler:    userHandler,
+		authMiddleware: authMiddleware,
 	}
 	return app, nil
 }
@@ -52,5 +56,6 @@ func (app *App) setupRouter(router *gin.Engine) {
 
 	// user related routes
 	router.POST("/user", app.userHandler.NewUser)
+	router.GET("/user/me", app.authMiddleware.IsLoggedIn(), app.userHandler.LoggedInUserDetails)
 
 }

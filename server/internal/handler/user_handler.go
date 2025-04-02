@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/kaviraj-j/duoplay/internal/middleware"
 	"github.com/kaviraj-j/duoplay/internal/service"
 )
 
@@ -40,5 +41,19 @@ func (handler *UserHandler) NewUser(ctx *gin.Context) {
 		"user":    user,
 		"token":   token,
 		"message": "new user created successfully",
+	})
+}
+
+func (handler *UserHandler) LoggedInUserDetails(ctx *gin.Context) {
+	user, ok := ctx.Get(middleware.AuthorizationPayloadKey)
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"type":    "error",
+			"message": "user is not authorized",
+		})
+	}
+	ctx.JSON(http.StatusOK, gin.H{
+		"type": "success",
+		"data": user,
 	})
 }
