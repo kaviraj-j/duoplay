@@ -6,16 +6,28 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/kaviraj-j/duoplay/internal/config"
+	"github.com/kaviraj-j/duoplay/internal/handler"
+	"github.com/kaviraj-j/duoplay/internal/repository"
+	"github.com/kaviraj-j/duoplay/internal/service"
 )
 
 type App struct {
-	config *config.Config
+	config      *config.Config
+	userHandler *handler.UserHandler
 }
 
 // creates new app
 func Create(config *config.Config) (*App, error) {
+	// get user repo, service, and handler
+	userRepository := repository.NewUserRepository()
+	userService, err := service.CreateUserService(userRepository, []byte(config.JwtSecret))
+	if err != nil {
+		return nil, err
+	}
+	userHandler := handler.NewUserHandler(&userService)
 	app := &App{
-		config: config,
+		config:      config,
+		userHandler: userHandler,
 	}
 	return app, nil
 }
@@ -37,5 +49,8 @@ func (app *App) setupRouter(router *gin.Engine) {
 			"timestamp": time.Now(),
 		})
 	})
+
+	// user related routes
+	router.POST("/user", app.userHandler.NewUser)
 
 }

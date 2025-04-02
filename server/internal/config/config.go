@@ -4,6 +4,7 @@ import "github.com/spf13/viper"
 
 type Config struct {
 	ServerAddress string `mapstructure:"SERVER_ADDRESS"`
+	JwtSecret     string `mapstructure:"JWT_SECRET"`
 }
 
 // Load function loads the configs from env file and return Config
