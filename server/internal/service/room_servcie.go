@@ -1,0 +1,42 @@
+package service
+
+import (
+	"context"
+
+	"github.com/kaviraj-j/duoplay/internal/model"
+	"github.com/kaviraj-j/duoplay/internal/repository"
+)
+
+type RoomService struct {
+	roomRepo repository.RoomRepository
+}
+
+func NewRoomService(roomRepo repository.RoomRepository) *RoomService {
+	return &RoomService{roomRepo: roomRepo}
+}
+
+func (s *RoomService) CreateRoom(ctx context.Context) (*model.Room, error) {
+	room := model.NewRoom()
+	err := s.roomRepo.CreateRoom(&ctx, room)
+	if err != nil {
+		return nil, err
+	}
+	return &room, nil
+}
+
+func (s *RoomService) AddPlayer(ctx context.Context, roomID string, player model.Player) error {
+	return s.roomRepo.AddPlayerToRoom(&ctx, roomID, player)
+}
+
+func (s *RoomService) GetRoom(ctx context.Context, roomID string) (*model.Room, error) {
+	return s.roomRepo.GetRoomByID(&ctx, roomID)
+}
+
+func (s *RoomService) StartGame(ctx context.Context, roomID string) error {
+	// TODO: implement start game method
+	return nil
+}
+
+func (s *RoomService) GetGame(ctx context.Context, roomID string) (*model.Game, error) {
+	return s.roomRepo.GetGame(&ctx, roomID)
+}
