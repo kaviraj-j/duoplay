@@ -13,7 +13,6 @@ type RoomRepository interface {
 	CreateRoom(ctx *context.Context, room model.Room) error
 	GetRoomByID(ctx *context.Context, id string) (*model.Room, error)
 	AddPlayerToRoom(ctx *context.Context, roomID string, player model.Player) error
-	// RemoveUserFromRoom(roomID string, userID string) error
 	DeleteRoom(ctx *context.Context, roomID string) error
 
 	SetGame(ctx *context.Context, roomID string, game model.Game) error

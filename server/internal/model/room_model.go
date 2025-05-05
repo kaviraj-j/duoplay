@@ -1,9 +1,7 @@
 package model
 
 import (
-	"crypto/rand"
-	"math/big"
-
+	"github.com/google/uuid"
 	"golang.org/x/net/websocket"
 )
 
@@ -18,21 +16,9 @@ type Room struct {
 	Game    Game
 }
 
-const idLength = 12
-const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-
-func generateRandomID() string {
-	result := make([]byte, idLength)
-	for i := 0; i < idLength; i++ {
-		num, _ := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
-		result[i] = charset[num.Int64()]
-	}
-	return string(result)
-}
-
 func NewRoom() Room {
 	return Room{
-		ID:      generateRandomID(),
+		ID:      uuid.New().String(),
 		Players: make(map[string]Player),
 	}
 }
