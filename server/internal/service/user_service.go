@@ -12,21 +12,21 @@ import (
 )
 
 // UserService defines the interface for user related business logic
-type UserService interface {
-	RegisterUser(ctx context.Context, name string) (*model.User, string, error)
-	GetUserByID(ctx context.Context, id string) (*model.User, error)
-	ValidateToken(ctx context.Context, tokenString string) (*model.User, error)
-}
+// type UserService interface {
+// 	RegisterUser(ctx context.Context, name string) (*model.User, string, error)
+// 	GetUserByID(ctx context.Context, id string) (*model.User, error)
+// 	ValidateToken(ctx context.Context, tokenString string) (*model.User, error)
+// }
 
 // userService implements UserService
-type userService struct {
+type UserService struct {
 	userRepository repository.UserRepository
 	jwtSecret      []byte
 	jwtExpires     time.Duration
 }
 
-func CreateUserService(userRepository repository.UserRepository, jwtSecret []byte) (UserService, error) {
-	return &userService{
+func CreateUserService(userRepository repository.UserRepository, jwtSecret []byte) (*UserService, error) {
+	return &UserService{
 		userRepository: userRepository,
 		jwtSecret:      jwtSecret,
 		jwtExpires:     time.Hour * 24,
@@ -34,7 +34,7 @@ func CreateUserService(userRepository repository.UserRepository, jwtSecret []byt
 }
 
 // RegisterUser registers a new user in user repo
-func (service *userService) RegisterUser(ctx context.Context, name string) (*model.User, string, error) {
+func (service *UserService) RegisterUser(ctx context.Context, name string) (*model.User, string, error) {
 	user := &model.User{
 		ID:   uuid.New().String(),
 		Name: name,
@@ -50,11 +50,11 @@ func (service *userService) RegisterUser(ctx context.Context, name string) (*mod
 	return user, token, nil
 }
 
-func (service *userService) GetUserByID(ctx context.Context, id string) (*model.User, error) {
+func (service *UserService) GetUserByID(ctx context.Context, id string) (*model.User, error) {
 	return service.userRepository.FindByID(ctx, id)
 }
 
-func (service *userService) ValidateToken(ctx context.Context, tokenString string) (*model.User, error) {
+func (service *UserService) ValidateToken(ctx context.Context, tokenString string) (*model.User, error) {
 	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("unexpected signing method")
@@ -83,7 +83,7 @@ func (service *userService) ValidateToken(ctx context.Context, tokenString strin
 }
 
 // generateJWT creates a new JWT token for a user
-func (service *userService) generateJWT(user *model.User) (string, error) {
+func (service *UserService) generateJWT(user *model.User) (string, error) {
 	// Create claims
 	claims := jwt.MapClaims{
 		"user_id": user.ID,

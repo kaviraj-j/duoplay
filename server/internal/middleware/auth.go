@@ -10,7 +10,7 @@ import (
 )
 
 type AuthMiddleWare struct {
-	userService service.UserService
+	userService *service.UserService
 }
 
 // auth related constants
@@ -20,7 +20,7 @@ const (
 	AuthorizationPayloadKey = "authorization_payload"
 )
 
-func NewAuthMiddleware(userService service.UserService) *AuthMiddleWare {
+func NewAuthMiddleware(userService *service.UserService) *AuthMiddleWare {
 	return &AuthMiddleWare{
 		userService: userService,
 	}

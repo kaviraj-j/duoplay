@@ -26,7 +26,7 @@ func Create(config *config.Config) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	userHandler := handler.NewUserHandler(&userService)
+	userHandler := handler.NewUserHandler(userService)
 	authMiddleware := middleware.NewAuthMiddleware(userService)
 	app := &App{
 		config:         config,

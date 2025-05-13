@@ -10,13 +10,13 @@ import (
 )
 
 type RoomRepository interface {
-	CreateRoom(ctx *context.Context, room model.Room) error
-	GetRoomByID(ctx *context.Context, id string) (*model.Room, error)
-	AddPlayerToRoom(ctx *context.Context, roomID string, player model.Player) error
-	DeleteRoom(ctx *context.Context, roomID string) error
+	CreateRoom(ctx context.Context, room model.Room) error
+	GetRoomByID(ctx context.Context, id string) (*model.Room, error)
+	AddPlayerToRoom(ctx context.Context, roomID string, player model.Player) error
+	DeleteRoom(ctx context.Context, roomID string) error
 
-	SetGame(ctx *context.Context, roomID string, game model.Game) error
-	GetGame(ctx *context.Context, roomID string) (*model.Game, error)
+	SetGame(ctx context.Context, roomID string, game model.Game) error
+	GetGame(ctx context.Context, roomID string) (*model.Game, error)
 }
 
 type inMemoryRoomRepository struct {
@@ -34,14 +34,14 @@ func NewRoomRepository() RoomRepository {
 	}
 }
 
-func (roomRepository *inMemoryRoomRepository) CreateRoom(ctx *context.Context, room model.Room) error {
+func (roomRepository *inMemoryRoomRepository) CreateRoom(ctx context.Context, room model.Room) error {
 	roomRepository.mu.Lock()
 	defer roomRepository.mu.Unlock()
 	roomRepository.rooms[room.ID] = &room
 	return nil
 }
 
-func (roomRepository *inMemoryRoomRepository) GetRoomByID(ctx *context.Context, id string) (*model.Room, error) {
+func (roomRepository *inMemoryRoomRepository) GetRoomByID(ctx context.Context, id string) (*model.Room, error) {
 	roomRepository.mu.RLock()
 	defer roomRepository.mu.RUnlock()
 	room, ok := roomRepository.rooms[id]
@@ -50,7 +50,7 @@ func (roomRepository *inMemoryRoomRepository) GetRoomByID(ctx *context.Context, 
 	}
 	return room, nil
 }
-func (roomRepository *inMemoryRoomRepository) AddPlayerToRoom(ctx *context.Context, roomID string, player model.Player) error {
+func (roomRepository *inMemoryRoomRepository) AddPlayerToRoom(ctx context.Context, roomID string, player model.Player) error {
 	roomRepository.mu.Lock()
 	defer roomRepository.mu.Unlock()
 	room, ok := roomRepository.rooms[roomID]
@@ -67,7 +67,7 @@ func (roomRepository *inMemoryRoomRepository) AddPlayerToRoom(ctx *context.Conte
 	room.Players[player.User.ID] = player
 	return nil
 }
-func (roomRepository *inMemoryRoomRepository) DeleteRoom(ctx *context.Context, roomID string) error {
+func (roomRepository *inMemoryRoomRepository) DeleteRoom(ctx context.Context, roomID string) error {
 	roomRepository.mu.Lock()
 	defer roomRepository.mu.Unlock()
 	_, ok := roomRepository.rooms[roomID]
@@ -77,7 +77,7 @@ func (roomRepository *inMemoryRoomRepository) DeleteRoom(ctx *context.Context, r
 	delete(roomRepository.rooms, roomID)
 	return nil
 }
-func (roomRepository *inMemoryRoomRepository) SetGame(ctx *context.Context, roomID string, game model.Game) error {
+func (roomRepository *inMemoryRoomRepository) SetGame(ctx context.Context, roomID string, game model.Game) error {
 	roomRepository.mu.Lock()
 	defer roomRepository.mu.Unlock()
 	room, ok := roomRepository.rooms[roomID]
@@ -87,7 +87,7 @@ func (roomRepository *inMemoryRoomRepository) SetGame(ctx *context.Context, room
 	room.Game = game
 	return nil
 }
-func (roomRepository *inMemoryRoomRepository) GetGame(ctx *context.Context, roomID string) (*model.Game, error) {
+func (roomRepository *inMemoryRoomRepository) GetGame(ctx context.Context, roomID string) (*model.Game, error) {
 	roomRepository.mu.Lock()
 	defer roomRepository.mu.Unlock()
 	room, ok := roomRepository.rooms[roomID]
