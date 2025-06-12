@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/kaviraj-j/duoplay/internal/config"
 	"github.com/kaviraj-j/duoplay/internal/handler"
@@ -15,6 +16,7 @@ import (
 type App struct {
 	config         *config.Config
 	userHandler    *handler.UserHandler
+	roomHandler    *handler.RoomHandler
 	authMiddleware *middleware.AuthMiddleWare
 }
 
@@ -28,10 +30,17 @@ func Create(config *config.Config) (*App, error) {
 	}
 	userHandler := handler.NewUserHandler(userService)
 	authMiddleware := middleware.NewAuthMiddleware(userService)
+
+	// room repo, service and handler
+	roomRepo := repository.NewRoomRepository()
+	roomService := service.NewRoomService(roomRepo)
+	roomHandler := handler.NewRoomHandler(roomService)
+
 	app := &App{
 		config:         config,
 		userHandler:    userHandler,
 		authMiddleware: authMiddleware,
+		roomHandler:    roomHandler,
 	}
 	return app, nil
 }
@@ -46,6 +55,16 @@ func (app *App) Run() {
 
 func (app *App) setupRouter(router *gin.Engine) {
 
+	// Configure CORS
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:5173"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
+
 	// setup health route handler
 	router.GET("/health", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{
@@ -57,5 +76,9 @@ func (app *App) setupRouter(router *gin.Engine) {
 	// user related routes
 	router.POST("/user", app.userHandler.NewUser)
 	router.GET("/user/me", app.authMiddleware.IsLoggedIn(), app.userHandler.LoggedInUserDetails)
+
+	// room routes
+	router.POST("/room", app.authMiddleware.IsLoggedIn(), app.roomHandler.NewRoom)
+	router.POST("/room/:roomID/join", app.authMiddleware.IsLoggedIn(), app.roomHandler.JoinRoom)
 
 }

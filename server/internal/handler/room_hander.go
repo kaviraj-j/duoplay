@@ -56,7 +56,7 @@ func (h *RoomHandler) JoinRoom(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
-	user := userInterface.(model.User)
+	user := userInterface.(*model.User)
 
 	// Upgrade HTTP connection to WebSocket
 	conn, err := h.upgrader.Upgrade(c.Writer, c.Request, nil)
@@ -67,7 +67,7 @@ func (h *RoomHandler) JoinRoom(c *gin.Context) {
 
 	// Create player and add to room
 	player := model.Player{
-		User: user,
+		User: *user,
 		Conn: conn,
 	}
 
