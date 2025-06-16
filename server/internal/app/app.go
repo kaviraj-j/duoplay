@@ -17,6 +17,7 @@ type App struct {
 	config         *config.Config
 	userHandler    *handler.UserHandler
 	roomHandler    *handler.RoomHandler
+	gameHanlder    *handler.GameHandler
 	authMiddleware *middleware.AuthMiddleWare
 }
 
@@ -80,5 +81,8 @@ func (app *App) setupRouter(router *gin.Engine) {
 	// room routes
 	router.POST("/room", app.authMiddleware.IsLoggedIn(), app.roomHandler.NewRoom)
 	router.POST("/room/:roomID/join", app.authMiddleware.IsLoggedIn(), app.roomHandler.JoinRoom)
+
+	// game routes
+	router.GET("/game/list", app.gameHanlder.GetGamesList)
 
 }

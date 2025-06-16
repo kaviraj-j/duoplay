@@ -22,6 +22,7 @@ type Game interface {
 type GameState struct {
 	ID        string
 	Type      GameType
+	Name      string
 	Players   map[string]Player
 	Winner    *Player
 	IsStarted bool
