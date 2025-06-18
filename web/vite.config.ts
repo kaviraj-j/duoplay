@@ -2,7 +2,6 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import path from "path";
-console.log("Hehe", __dirname)
 export default defineConfig({
   plugins: [
     tailwindcss(),
