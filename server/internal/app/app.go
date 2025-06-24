@@ -19,6 +19,7 @@ type App struct {
 	roomHandler    *handler.RoomHandler
 	gameHanlder    *handler.GameHandler
 	authMiddleware *middleware.AuthMiddleWare
+	roomMiddleware *middleware.RoomMiddleWare
 }
 
 // creates new app
@@ -32,16 +33,23 @@ func Create(config *config.Config) (*App, error) {
 	userHandler := handler.NewUserHandler(userService)
 	authMiddleware := middleware.NewAuthMiddleware(userService)
 
-	// room repo, service and handler
+	gameRepo := repository.NewGameRepository()
+	gameService := service.NewGameService(gameRepo)
+	gameHandler := handler.NewGameHandler(gameService)
+
+	// room repo, service, handler and middleware
 	roomRepo := repository.NewRoomRepository()
 	roomService := service.NewRoomService(roomRepo)
 	roomHandler := handler.NewRoomHandler(roomService)
+	roomMiddleware := middleware.NewRoomMiddleware(roomService)
 
 	app := &App{
 		config:         config,
 		userHandler:    userHandler,
 		authMiddleware: authMiddleware,
 		roomHandler:    roomHandler,
+		roomMiddleware: roomMiddleware,
+		gameHanlder:    gameHandler,
 	}
 	return app, nil
 }
@@ -80,6 +88,7 @@ func (app *App) setupRouter(router *gin.Engine) {
 
 	// room routes
 	router.POST("/room", app.authMiddleware.IsLoggedIn(), app.roomHandler.NewRoom)
+	router.GET("/room/:roomID", app.authMiddleware.IsLoggedIn(), app.roomMiddleware.IsRoomOwner(), app.roomHandler.GetRoom)
 	router.POST("/room/:roomID/join", app.authMiddleware.IsLoggedIn(), app.roomHandler.JoinRoom)
 
 	// game routes

@@ -28,3 +28,8 @@ type GameState struct {
 	IsStarted bool
 	CreatedAt time.Time
 }
+
+type GameListPayload struct {
+	Name        string `json:"name"`
+	DisplayName string `json:"display_name"`
+}

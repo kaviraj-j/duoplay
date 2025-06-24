@@ -95,7 +95,7 @@ func (h *RoomHandler) GetRoom(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, room)
+	c.JSON(http.StatusOK, gin.H{"type": "success", "data": room})
 }
 
 // StartGame initiates the game in the room

@@ -13,3 +13,17 @@ export interface AuthContextType {
   logout: () => void;
   isLoading: boolean;
 }
+
+export interface GameListPayload {
+  name: string;
+  display_name: string;
+}
+export type Player = {
+  user: User;
+};
+
+export type Room = {
+  id: string;
+  players: Record<string, Player>;
+  gameName?: string;
+};

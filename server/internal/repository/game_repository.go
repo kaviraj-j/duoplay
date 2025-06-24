@@ -10,14 +10,14 @@ import (
 )
 
 type GameRepository interface {
-	GetGamesList(ctx context.Context) ([]string, error)
+	GetGamesList(ctx context.Context) ([]model.GameListPayload, error)
 	GetGame(ctx context.Context, gameID string) (model.Game, error)
 	CreateGame(ctx context.Context, gameType model.GameType) (model.Game, error)
 	UpdateGame(ctx context.Context, gameID string, game model.Game) error
 }
 
 type inMemoryGameRepository struct {
-	availableGames map[model.GameType]struct{}
+	availableGames map[model.GameType]model.GameListPayload
 	activeGames    map[string]model.Game
 	mu             sync.RWMutex
 }
@@ -28,21 +28,27 @@ var (
 
 func NewGameRepository() GameRepository {
 	gameRepo := &inMemoryGameRepository{
-		availableGames: map[model.GameType]struct{}{
-			model.TicTacToeGame: {}, // Register tic-tac-toe as an available game type
+		availableGames: map[model.GameType]model.GameListPayload{
+			model.TicTacToeGame: {
+				Name:        "tictactoe",
+				DisplayName: "Tic Tac Toe",
+			},
 		},
 		activeGames: make(map[string]model.Game),
 	}
 	return gameRepo
 }
 
-func (gameRepository *inMemoryGameRepository) GetGamesList(ctx context.Context) ([]string, error) {
+func (gameRepository *inMemoryGameRepository) GetGamesList(ctx context.Context) ([]model.GameListPayload, error) {
 	gameRepository.mu.RLock()
 	defer gameRepository.mu.RUnlock()
 
-	gameTypes := make([]string, 0, len(gameRepository.availableGames))
+	gameTypes := make([]model.GameListPayload, 0, len(gameRepository.availableGames))
 	for gameType := range gameRepository.availableGames {
-		gameTypes = append(gameTypes, string(gameType))
+		gameTypes = append(gameTypes, model.GameListPayload{
+			Name:        string(gameType),
+			DisplayName: gameRepository.availableGames[gameType].DisplayName,
+		})
 	}
 	return gameTypes, nil
 }

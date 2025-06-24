@@ -28,7 +28,7 @@ func (h *GameHandler) GetGamesList(c *gin.Context) {
 	gamesList, err := h.gameService.GetGamesList(c)
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, "")
+		c.JSON(http.StatusInternalServerError, gin.H{"type": "error", "message": err.Error()})
 		return
 	}
 
