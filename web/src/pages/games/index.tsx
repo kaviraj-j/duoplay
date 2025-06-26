@@ -1,23 +1,27 @@
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import TicTacToePage from "@/pages/games/tictactoe";
+import { useRoom } from "@/contexts/RoomContext";
 
 const gameComponents: Record<string, React.FC> = {
   tictactoe: TicTacToePage,
 };
 
 const GamesPage = () => {
-  
+  const navigate = useNavigate();
 
   const { gameName } = useParams();
 
-  if (!gameName) {
-    return <div>Invalid game</div>;
+  const { room } = useRoom();
+
+  if (!room) {
+    // TODO: open the model to play with friends or random players
+    
   }
 
-  const GameComponent = gameComponents[gameName];
+  const GameComponent = gameComponents[gameName as keyof typeof gameComponents];
 
   if (!GameComponent) {
-    return <div>Invalid game</div>;
+    return navigate("/");
   }
 
   return <GameComponent />;

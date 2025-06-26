@@ -90,6 +90,7 @@ func (app *App) setupRouter(router *gin.Engine) {
 	router.POST("/room", app.authMiddleware.IsLoggedIn(), app.roomHandler.NewRoom)
 	router.GET("/room/:roomID", app.authMiddleware.IsLoggedIn(), app.roomMiddleware.IsRoomOwner(), app.roomHandler.GetRoom)
 	router.POST("/room/:roomID/join", app.authMiddleware.IsLoggedIn(), app.roomHandler.JoinRoom)
+	router.POST("/room/joinQueue", app.authMiddleware.IsLoggedIn(), app.roomHandler.JoinQueue)
 
 	// game routes
 	router.GET("/game/list", app.gameHanlder.GetGamesList)

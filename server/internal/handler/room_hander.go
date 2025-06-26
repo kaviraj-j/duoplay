@@ -81,6 +81,20 @@ func (h *RoomHandler) JoinRoom(c *gin.Context) {
 	go h.handleGameConnection(c, conn, roomID, player)
 }
 
+func (h *RoomHandler) JoinQueue(c *gin.Context) {
+	userInterface, exists := c.Get(middleware.AuthorizationPayloadKey)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	user := userInterface.(*model.User)
+
+	if err := h.roomService.JoinQueue(c, user.ID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+}
+
 // GetRoom returns room details
 func (h *RoomHandler) GetRoom(c *gin.Context) {
 	roomID := c.Param("roomID")

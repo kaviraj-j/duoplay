@@ -48,3 +48,8 @@ func (s *RoomService) StartGame(ctx context.Context, roomID string) error {
 func (s *RoomService) GetGame(ctx context.Context, roomID string) (*model.Game, error) {
 	return s.roomRepo.GetGame(ctx, roomID)
 }
+
+// TODO: implement JoinQueue
+func (s *RoomService) JoinQueue(ctx context.Context, userID string) error {
+	return nil
+}
