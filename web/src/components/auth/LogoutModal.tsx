@@ -9,10 +9,12 @@ import {
 } from "@mui/material";
 import { Close as CloseIcon } from "@mui/icons-material";
 import LogoutIcon from "@mui/icons-material/Logout";
+import { useRoom } from "@/contexts/RoomContext";
 
 export function LogoutModal() {
   const [isOpen, setIsOpen] = useState(false);
   const { logout } = useAuthContext();
+  const { leaveRoom } = useRoom();
 
   return (
     <>
@@ -51,7 +53,10 @@ export function LogoutModal() {
             type="submit"
             variant="contained"
             color="primary"
-            onClick={logout}
+            onClick={() => {
+              logout();
+              leaveRoom();
+            }}
           >
             Confirm
           </Button>

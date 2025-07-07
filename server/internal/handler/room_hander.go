@@ -31,14 +31,17 @@ func (h *RoomHandler) NewRoom(c *gin.Context) {
 	room, err := h.roomService.CreateRoom(c)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "Failed to create room",
+			"type":    "error",
+			"message": "Failed to create room",
+			"data":    nil,
 		})
 		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"room_id": room.ID,
+		"type":    "success",
 		"message": "Room created successfully",
+		"data":    room,
 	})
 }
 
@@ -46,14 +49,14 @@ func (h *RoomHandler) NewRoom(c *gin.Context) {
 func (h *RoomHandler) JoinRoom(c *gin.Context) {
 	roomID := c.Param("roomID")
 	if roomID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Room ID is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"type": "error", "message": "Room ID is required", "data": nil})
 		return
 	}
 
 	// Get user from auth middleware
 	userInterface, exists := c.Get(middleware.AuthorizationPayloadKey)
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{"type": "error", "message": "Unauthorized", "data": nil})
 		return
 	}
 	user := userInterface.(*model.User)
@@ -61,7 +64,7 @@ func (h *RoomHandler) JoinRoom(c *gin.Context) {
 	// Upgrade HTTP connection to WebSocket
 	conn, err := h.upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not upgrade connection"})
+		c.JSON(http.StatusInternalServerError, gin.H{"type": "error", "message": "Could not upgrade connection", "data": nil})
 		return
 	}
 
@@ -73,7 +76,7 @@ func (h *RoomHandler) JoinRoom(c *gin.Context) {
 
 	if err := h.roomService.AddPlayer(c, roomID, player); err != nil {
 		conn.Close()
-		conn.WriteJSON(gin.H{"error": err.Error()})
+		conn.WriteJSON(gin.H{"type": "error", "message": err.Error(), "data": nil})
 		return
 	}
 
@@ -81,17 +84,65 @@ func (h *RoomHandler) JoinRoom(c *gin.Context) {
 	go h.handleGameConnection(c, conn, roomID, player)
 }
 
-func (h *RoomHandler) JoinQueue(c *gin.Context) {
+func (h *RoomHandler) JoinWaitingQueue(c *gin.Context) {
 	userInterface, exists := c.Get(middleware.AuthorizationPayloadKey)
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, gin.H{"type": "error", "message": "Unauthorized", "data": nil})
 		return
 	}
 	user := userInterface.(*model.User)
 
-	if err := h.roomService.JoinQueue(c, user.ID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	// Upgrade HTTP connection to WebSocket
+	conn, err := h.upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"type": "error", "message": "Could not upgrade connection", "data": nil})
 		return
+	}
+
+	// Add user to queue with WebSocket connection
+	if err := h.roomService.JoinQueue(c, user.ID, conn); err != nil {
+		conn.Close()
+		if err == service.ErrorUserAlreadyInQueue {
+			c.JSON(http.StatusBadRequest, gin.H{"type": "error", "message": "User is already in queue", "data": nil})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"type": "error", "message": "Failed to join queue", "data": nil})
+		}
+		return
+	}
+
+	// Handle queue WebSocket connection
+	go h.handleQueueConnection(c, conn, user.ID)
+}
+
+// handleQueueConnection handles WebSocket communication for queue waiting
+func (h *RoomHandler) handleQueueConnection(ctx *gin.Context, conn *websocket.Conn, userID string) {
+	defer conn.Close()
+
+	// Send initial message
+	conn.WriteJSON(gin.H{
+		"type":    "queue_joined",
+		"message": "Waiting for an opponent to connect...",
+	})
+
+	for {
+		// Read message from WebSocket
+		messageType, _, err := conn.ReadMessage()
+		if err != nil {
+			// Handle disconnection - remove from queue
+			h.roomService.RemoveFromQueue(ctx, userID)
+			return
+		}
+
+		// Handle different message types
+		switch messageType {
+		case websocket.TextMessage:
+			// Handle text messages if needed
+			continue
+		case websocket.CloseMessage:
+			// Remove from queue on close
+			h.roomService.RemoveFromQueue(ctx, userID)
+			return
+		}
 	}
 }
 
@@ -99,33 +150,33 @@ func (h *RoomHandler) JoinQueue(c *gin.Context) {
 func (h *RoomHandler) GetRoom(c *gin.Context) {
 	roomID := c.Param("roomID")
 	if roomID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Room ID is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"type": "error", "message": "Room ID is required", "data": nil})
 		return
 	}
 
 	room, err := h.roomService.GetRoom(c, roomID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Room not found"})
+		c.JSON(http.StatusNotFound, gin.H{"type": "error", "message": "Room not found", "data": nil})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"type": "success", "data": room})
+	c.JSON(http.StatusOK, gin.H{"type": "success", "message": "Room fetched successfully", "data": room})
 }
 
 // StartGame initiates the game in the room
 func (h *RoomHandler) StartGame(c *gin.Context) {
 	roomID := c.Param("roomID")
 	if roomID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Room ID is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"type": "error", "message": "Room ID is required", "data": nil})
 		return
 	}
 
 	if err := h.roomService.StartGame(c, roomID); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"type": "error", "message": err.Error(), "data": nil})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Game started"})
+	c.JSON(http.StatusOK, gin.H{"type": "success", "message": "Game started", "data": nil})
 }
 
 // handleGameConnection handles WebSocket communication for a game session
@@ -150,4 +201,35 @@ func (h *RoomHandler) handleGameConnection(ctx *gin.Context, conn *websocket.Con
 			return
 		}
 	}
+}
+
+func (h *RoomHandler) LeaveWaitingQueue(c *gin.Context) {
+	userInterface, exists := c.Get(middleware.AuthorizationPayloadKey)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"type": "error", "message": "Unauthorized", "data": nil})
+		return
+	}
+	user := userInterface.(*model.User)
+
+	if err := h.roomService.RemoveFromQueue(c, user.ID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"type": "error", "message": "Failed to leave queue", "data": nil})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"type": "success", "message": "Left queue", "data": nil})
+}
+
+func (h *RoomHandler) LeaveRoom(c *gin.Context) {
+	roomID := c.Param("roomID")
+	if roomID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"type": "error", "message": "Room ID is required", "data": nil})
+		return
+	}
+
+	if err := h.roomService.LeaveRoom(c, roomID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"type": "error", "message": "Failed to leave room", "data": nil})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"type": "success", "message": "Left room", "data": nil})
 }

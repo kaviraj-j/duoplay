@@ -25,7 +25,7 @@ export function LoginModal() {
         return;
       }
       const res = await userApi.register({ name: sanitizedName });
-      login(res.user, res.token);
+      login(res.data, res.token);
       setIsOpen(false);
     } catch (error) {
       console.error("Login failed:", error);

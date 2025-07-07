@@ -39,7 +39,8 @@ func Create(config *config.Config) (*App, error) {
 
 	// room repo, service, handler and middleware
 	roomRepo := repository.NewRoomRepository()
-	roomService := service.NewRoomService(roomRepo)
+	queueRepo := repository.NewQueueRepository()
+	roomService := service.NewRoomService(roomRepo, queueRepo, userRepository)
 	roomHandler := handler.NewRoomHandler(roomService)
 	roomMiddleware := middleware.NewRoomMiddleware(roomService)
 
@@ -84,13 +85,15 @@ func (app *App) setupRouter(router *gin.Engine) {
 
 	// user related routes
 	router.POST("/user", app.userHandler.NewUser)
-	router.GET("/user/me", app.authMiddleware.IsLoggedIn(), app.userHandler.LoggedInUserDetails)
+	router.GET("/user/me", app.authMiddleware.IsAuthenticated(), app.userHandler.LoggedInUserDetails)
 
 	// room routes
-	router.POST("/room", app.authMiddleware.IsLoggedIn(), app.roomHandler.NewRoom)
-	router.GET("/room/:roomID", app.authMiddleware.IsLoggedIn(), app.roomMiddleware.IsRoomOwner(), app.roomHandler.GetRoom)
-	router.POST("/room/:roomID/join", app.authMiddleware.IsLoggedIn(), app.roomHandler.JoinRoom)
-	router.POST("/room/joinQueue", app.authMiddleware.IsLoggedIn(), app.roomHandler.JoinQueue)
+	router.POST("/room", app.authMiddleware.IsAuthenticated(), app.roomHandler.NewRoom)
+	router.GET("/room/:roomID", app.authMiddleware.IsAuthenticated(), app.roomMiddleware.IsRoomOwner(), app.roomHandler.GetRoom)
+	router.POST("/room/:roomID/join", app.authMiddleware.IsAuthenticated(), app.roomHandler.JoinRoom)
+	router.POST("/room/joinQueue", app.authMiddleware.IsAuthenticated(), app.roomHandler.JoinWaitingQueue)
+	router.POST("/room/leaveQueue", app.authMiddleware.IsAuthenticated(), app.roomHandler.LeaveWaitingQueue)
+	router.POST("/room/leave", app.authMiddleware.IsAuthenticated(), app.roomHandler.LeaveRoom)
 
 	// game routes
 	router.GET("/game/list", app.gameHanlder.GetGamesList)

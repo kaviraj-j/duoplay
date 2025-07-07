@@ -24,6 +24,7 @@ func (handler *UserHandler) NewUser(ctx *gin.Context) {
 	}
 	if err := ctx.ShouldBindBodyWithJSON(&newUserRequestDetails); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{
+			"type":    "error",
 			"message": "error while parsing data",
 		})
 		return
@@ -32,13 +33,15 @@ func (handler *UserHandler) NewUser(ctx *gin.Context) {
 	user, token, err := handler.userService.RegisterUser(ctx, newUserRequestDetails.Name)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"type":    "error",
 			"message": "error while creating user",
 		})
 		return
 	}
 
 	ctx.JSON(http.StatusCreated, gin.H{
-		"user":    user,
+		"type":    "success",
+		"data":    user,
 		"token":   token,
 		"message": "new user created successfully",
 	})

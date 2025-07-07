@@ -26,14 +26,14 @@ func (roomMiddleware *RoomMiddleWare) IsRoomOwner() gin.HandlerFunc {
 
 		room, err := roomMiddleware.roomService.GetRoom(ctx, roomID)
 		if err != nil {
-			ctx.JSON(http.StatusNotFound, gin.H{"error": "Room not found"})
+			ctx.JSON(http.StatusNotFound, gin.H{"type": "error", "message": "Room not found"})
 			ctx.Abort()
 		}
 
 		_, exists := room.Players[user.ID]
 
 		if !exists {
-			ctx.JSON(http.StatusForbidden, gin.H{"error": "You are not a player in this room"})
+			ctx.JSON(http.StatusForbidden, gin.H{"type": "error", "message": "You are not a player in this room"})
 			ctx.Abort()
 		}
 

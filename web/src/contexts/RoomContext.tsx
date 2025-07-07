@@ -5,10 +5,9 @@ import type { Room } from "@/types";
 
 type RoomContextType = {
   room: Room | null;
-  createRoom: () => Promise<Room | null>;
+  createRoom: (roomData: Room) => Promise<Room | null>;
   joinRoom: (roomID: string) => Promise<Room | null>;
-  loading: boolean;
-  error: string | null;
+  leaveRoom: () => Promise<void>;
 };
 
 const RoomContext = createContext<RoomContextType | undefined>(undefined);
@@ -42,13 +41,12 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const createRoom = async (): Promise<Room | null> => {
+  const createRoom = async (roomData: Room): Promise<Room | null> => {
     setLoading(true);
     setError(null);
     try {
-      const response = await roomApi.createRoom();
-      const roomData = response.data as Room;
       setRoom(roomData);
+      localStorage.setItem("duoplay_room", JSON.stringify(roomData));
       return roomData;
     } catch (err: any) {
       setError((err as Error)?.message || "Failed to create room");
@@ -74,10 +72,20 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const leaveRoom = async (): Promise<void> => {
+    const roomID = room?.id;
+    if (!roomID) {
+      return;
+    }
+    setLoading(true);
+    setError(null);
+
+    setRoom(null);
+    localStorage.removeItem("duoplay_room");
+  };
+
   return (
-    <RoomContext.Provider
-      value={{ room, createRoom, joinRoom, loading, error }}
-    >
+    <RoomContext.Provider value={{ room, createRoom, joinRoom, leaveRoom }}>
       {children}
     </RoomContext.Provider>
   );

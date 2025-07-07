@@ -14,8 +14,7 @@ const GamesPage = () => {
   const { room } = useRoom();
 
   if (!room) {
-    // TODO: open the model to play with friends or random players
-    
+    navigate("/");
   }
 
   const GameComponent = gameComponents[gameName as keyof typeof gameComponents];

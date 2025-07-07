@@ -26,7 +26,7 @@ func NewAuthMiddleware(userService *service.UserService) *AuthMiddleWare {
 	}
 }
 
-func (authMiddleware *AuthMiddleWare) IsLoggedIn() gin.HandlerFunc {
+func (authMiddleware *AuthMiddleWare) IsAuthenticated() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 
 		// get token from header
@@ -58,12 +58,23 @@ func (authMiddleware *AuthMiddleWare) IsLoggedIn() gin.HandlerFunc {
 
 		// validate token
 		tokenStringFromHeader := fields[1]
-		user, err := authMiddleware.userService.ValidateToken(ctx, tokenStringFromHeader)
+		userPayload, err := authMiddleware.userService.ValidateToken(ctx, tokenStringFromHeader)
 
 		if err != nil {
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"type":    "error",
 				"message": err.Error(),
+			})
+			return
+		}
+
+		// check if user exists
+		user, err := authMiddleware.userService.GetUserByID(ctx, userPayload.ID)
+
+		if err != nil {
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"type":    "error",
+				"message": "user not found",
 			})
 			return
 		}

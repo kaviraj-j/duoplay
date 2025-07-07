@@ -22,9 +22,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     (async () => {
       const savedUser = localStorage.getItem("duoplay_user");
       const token = localStorage.getItem("duoplay_token");
-      const isLoggedIn = !!(savedUser && token);
+      const IsAuthenticated = !!(savedUser && token);
 
-      if (!isLoggedIn) {
+      if (!IsAuthenticated) {
         setUser(null);
         setIsLoading(false);
         return;

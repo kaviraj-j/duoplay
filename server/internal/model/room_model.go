@@ -11,9 +11,9 @@ type Player struct {
 }
 
 type Room struct {
-	ID      string `json:"id"`
-	Players map[string]Player
-	Game    Game
+	ID      string            `json:"id"`
+	Players map[string]Player `json:"players"`
+	Game    Game              `json:"game"`
 }
 
 func NewRoom() Room {
