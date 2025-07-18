@@ -14,6 +14,7 @@ type RoomRepository interface {
 	GetRoomByID(ctx context.Context, id string) (*model.Room, error)
 	AddPlayerToRoom(ctx context.Context, roomID string, player model.Player) error
 	DeleteRoom(ctx context.Context, roomID string) error
+	UpdateRoom(ctx context.Context, room model.Room) error
 
 	SetGame(ctx context.Context, roomID string, game model.Game) error
 	GetGame(ctx context.Context, roomID string) (*model.Game, error)
@@ -75,6 +76,16 @@ func (roomRepository *inMemoryRoomRepository) DeleteRoom(ctx context.Context, ro
 		return ErrRoomNotFound
 	}
 	delete(roomRepository.rooms, roomID)
+	return nil
+}
+func (roomRepository *inMemoryRoomRepository) UpdateRoom(ctx context.Context, room model.Room) error {
+	roomRepository.mu.Lock()
+	defer roomRepository.mu.Unlock()
+	existingRoom, ok := roomRepository.rooms[room.ID]
+	if !ok {
+		return ErrRoomNotFound
+	}
+	*existingRoom = room
 	return nil
 }
 func (roomRepository *inMemoryRoomRepository) SetGame(ctx context.Context, roomID string, game model.Game) error {

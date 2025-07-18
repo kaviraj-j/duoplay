@@ -42,13 +42,13 @@ func NewRoomService(roomRepo repository.RoomRepository, queueRepo repository.Que
 	return service
 }
 
-func (s *RoomService) CreateRoom(ctx context.Context) (*model.Room, error) {
+func (s *RoomService) CreateRoom(ctx context.Context) (model.Room, error) {
 	room := model.NewRoom()
 	err := s.roomRepo.CreateRoom(ctx, room)
 	if err != nil {
-		return nil, err
+		return model.Room{}, err
 	}
-	return &room, nil
+	return room, nil
 }
 
 func (s *RoomService) AddPlayer(ctx context.Context, roomID string, player model.Player) error {
@@ -57,6 +57,10 @@ func (s *RoomService) AddPlayer(ctx context.Context, roomID string, player model
 
 func (s *RoomService) GetRoom(ctx context.Context, roomID string) (*model.Room, error) {
 	return s.roomRepo.GetRoomByID(ctx, roomID)
+}
+
+func (s *RoomService) UpdateRoom(ctx context.Context, room model.Room) error {
+	return s.roomRepo.UpdateRoom(ctx, room)
 }
 
 func (s *RoomService) StartGame(ctx context.Context, roomID string) error {
@@ -121,14 +125,8 @@ func (s *RoomService) monitorQueue(ctx context.Context) {
 				// Try to create a match
 				room, err := s.CreateMatch(ctx, player1ID, player2ID)
 				if err != nil {
-					// If match creation fails, remove problematic players from queue
-					s.queueRepo.RemoveFromQueue(ctx, player1ID)
-					s.queueRepo.RemoveFromQueue(ctx, player2ID)
 					continue
 				}
-
-				// Remove matched players from waiting list
-				waitingPlayers = waitingPlayers[2:]
 
 				// Log successful match
 				fmt.Printf("Match created: Room %s with players %s and %s\n", room.ID, player1ID, player2ID)
@@ -185,6 +183,13 @@ func (s *RoomService) CreateMatch(ctx context.Context, player1ID, player2ID stri
 		return nil, err
 	}
 
+	// Update room status to game selection
+	room.Status = model.RoomStatusGameSelection
+	err = s.roomRepo.UpdateRoom(ctx, room)
+	if err != nil {
+		return nil, err
+	}
+
 	// Notify both players about the match
 	player1Conn.WriteJSON(gin.H{
 		"type":    "match_found",
@@ -208,4 +213,111 @@ func (s *RoomService) LeaveRoom(ctx context.Context, roomID string) error {
 	}
 
 	return s.roomRepo.DeleteRoom(ctx, roomID)
+}
+
+func (s *RoomService) GetOppositePlayer(ctx context.Context, roomPlayers map[string]model.Player, playerId string) (model.Player, error) {
+	for id, p := range roomPlayers {
+		if id != playerId {
+			return p, nil
+		}
+	}
+	return model.Player{}, errors.New("opposite player not found")
+}
+
+// handlePlayerJoinedRoom notifies the other player in the room that a player has joined
+func (s *RoomService) HandlePlayerJoinedRoom(ctx context.Context, room *model.Room, joinedPlayer model.Player) error {
+	// Find the opposite player
+	oppositePlayer, err := s.GetOppositePlayer(ctx, room.Players, joinedPlayer.User.ID)
+	if err != nil {
+		return err
+	}
+	if oppositePlayer.Conn != nil {
+		err := oppositePlayer.Conn.WriteJSON(map[string]interface{}{
+			"type":    "joined_room",
+			"message": "A player has joined your room.",
+			"data": map[string]interface{}{
+				"user": joinedPlayer.User,
+			},
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// HandleGameChosen handles when a player chooses a game
+func (s *RoomService) HandleGameChosen(ctx context.Context, room *model.Room, player model.Player, gameType model.GameType) error {
+	// Record the player's game choice
+	room.GameSelection.PlayerChoices[player.User.ID] = gameType
+
+	// Check if both players have chosen games
+	if len(room.GameSelection.PlayerChoices) == 2 {
+		room.GameSelection.BothChosen = true
+	}
+
+	// Save the updated room state
+	err := s.roomRepo.UpdateRoom(ctx, *room)
+	if err != nil {
+		return err
+	}
+
+	// Notify the opposite player about the game choice
+	oppositePlayer, err := s.GetOppositePlayer(ctx, room.Players, player.User.ID)
+	if err != nil {
+		return err
+	}
+
+	if oppositePlayer.Conn != nil {
+		messageData := map[string]interface{}{
+			"player_id":   player.User.ID,
+			"player_name": player.User.Name,
+			"game_type":   gameType,
+			"both_chosen": room.GameSelection.BothChosen,
+		}
+
+		if room.GameSelection.BothChosen {
+			// Both players have chosen, show both choices
+			messageData["player_choices"] = room.GameSelection.PlayerChoices
+		}
+
+		err := oppositePlayer.Conn.WriteJSON(map[string]interface{}{
+			"type":    model.MessageTypeGameChosen,
+			"message": "Your opponent has chosen a game.",
+			"data":    messageData,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// GetGameSelectionState returns the current game selection state for a room
+func (s *RoomService) GetGameSelectionState(ctx context.Context, roomID string) (*model.GameSelectionState, error) {
+	room, err := s.roomRepo.GetRoomByID(ctx, roomID)
+	if err != nil {
+		return nil, err
+	}
+	return &room.GameSelection, nil
+}
+
+// HandleGameAccepted handles when a player accepts a game
+func (s *RoomService) HandleGameAccepted(ctx context.Context, room *model.Room, player model.Player, gameType model.GameType) error {
+	// Record the player's game acceptance
+	room.GameSelection.PlayerChoices[player.User.ID] = gameType
+
+	// Check if both players have accepted games
+	if len(room.GameSelection.PlayerChoices) == 2 {
+		room.GameSelection.BothChosen = true
+	}
+
+	// Save the updated room state
+	err := s.roomRepo.UpdateRoom(ctx, *room)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

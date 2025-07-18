@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/kaviraj-j/duoplay/internal/model"
@@ -40,9 +39,6 @@ func (q *inMemoryQueueRepository) AddToQueue(ctx context.Context, userID string,
 	defer q.mu.Unlock()
 
 	q.waitingPlayers[userID] = conn
-
-	// Start a goroutine to check for matches
-	go q.checkForMatches(ctx)
 
 	return nil
 }
@@ -81,35 +77,6 @@ func (q *inMemoryQueueRepository) GetPlayerConnection(ctx context.Context, userI
 	}
 
 	return conn, nil
-}
-
-func (q *inMemoryQueueRepository) checkForMatches(ctx context.Context) {
-	// Wait a bit to allow more players to join
-	time.Sleep(100 * time.Millisecond)
-
-	q.mu.Lock()
-	defer q.mu.Unlock()
-
-	// If we have 2 or more players, create a match
-	waitingPlayers := make([]string, 0, len(q.waitingPlayers))
-	for userID := range q.waitingPlayers {
-		waitingPlayers = append(waitingPlayers, userID)
-	}
-
-	if len(waitingPlayers) >= 2 {
-		// Take the first two players
-		player1ID := waitingPlayers[0]
-		player2ID := waitingPlayers[1]
-
-		// Remove them from queue
-		delete(q.waitingPlayers, player1ID)
-		delete(q.waitingPlayers, player2ID)
-
-		// Call the match callback if set
-		if q.matchCallback != nil {
-			go q.matchCallback(ctx, player1ID, player2ID)
-		}
-	}
 }
 
 func (q *inMemoryQueueRepository) PlayerExistsInQueue(ctx context.Context, userID string) (bool, error) {
