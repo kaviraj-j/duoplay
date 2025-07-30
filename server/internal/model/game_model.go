@@ -2,6 +2,14 @@ package model
 
 import "time"
 
+type GameStatus string
+
+const (
+	GameStatusNotStarted GameStatus = "not_started"
+	GameStatusInProgress GameStatus = "in_progress"
+	GameStatusOver       GameStatus = "over"
+)
+
 type GameType string
 
 const (
@@ -16,6 +24,8 @@ type Game interface {
 	Start() error
 	MakeMove(playerID string, move any) error
 	IsGameOver() bool
+	GetWinner() *Player
+	GetStatus() GameStatus
 }
 
 // GameState holds common game state
@@ -25,7 +35,7 @@ type GameState struct {
 	Name      string
 	Players   map[string]Player
 	Winner    *Player
-	IsStarted bool
+	Status    GameStatus
 	CreatedAt time.Time
 }
 

@@ -17,10 +17,14 @@ const (
 	MessageTypeChooseGame      MessageType = "choose_game"
 	MessageTypeGameMove        MessageType = "game_move"
 	MessageTypeGameChosen      MessageType = "game_chosen"
+	MessageTypeGameAccept      MessageType = "game_accept"
 	MessageTypeGameAccepted    MessageType = "game_accepted"
+	MessageTypeGameReject      MessageType = "game_reject"
+	MessageTypeGameRejected    MessageType = "game_rejected"
 	MessageTypeMoveMade        MessageType = "move_made"
-	MessageTypeRejectGame      MessageType = "reject_game"
-	MessageTypeContinueGame    MessageType = "continue_game"
+	MessageTypeReplayGame      MessageType = "replay_game"
+	MessageTypeReplayAccepted  MessageType = "replay_accepted"
+	MessageTypeReplayRejected  MessageType = "replay_rejected"
 	MessageTypeError           MessageType = "error"
 	MessageTypeGameSelection   MessageType = "game_selection"
 	MessageTypeBothGamesChosen MessageType = "both_games_chosen"
@@ -44,7 +48,17 @@ type Player struct {
 // GameSelectionState tracks which players have chosen games
 type GameSelectionState struct {
 	PlayerChoices map[string]GameType `json:"player_choices"` // playerID -> gameType
-	BothChosen    bool                `json:"both_chosen"`
+}
+
+type RoomEventType string
+
+const (
+	RoomEventTypeGameOver RoomEventType = "game_over"
+)
+
+type Event struct {
+	Type    RoomEventType `json:"type"`
+	Payload interface{}   `json:"payload"`
 }
 
 type Room struct {
@@ -52,8 +66,8 @@ type Room struct {
 	Players       map[string]Player  `json:"players"`
 	Game          Game               `json:"game"`
 	GameSelection GameSelectionState `json:"game_selection"`
-	IsGameStarted bool               `json:"is_game_started"`
 	Status        RoomStatus         `json:"status"`
+	EventChannel  chan Event         `json:"event_channel"`
 }
 
 func NewRoom() Room {
@@ -62,9 +76,8 @@ func NewRoom() Room {
 		Players: make(map[string]Player),
 		GameSelection: GameSelectionState{
 			PlayerChoices: make(map[string]GameType),
-			BothChosen:    false,
 		},
-		IsGameStarted: false,
-		Status:        RoomStatusWaitingForPlayer,
+		Status:       RoomStatusWaitingForPlayer,
+		EventChannel: make(chan Event),
 	}
 }

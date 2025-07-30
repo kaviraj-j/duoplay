@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -224,49 +223,6 @@ func (h *RoomHandler) StartGame(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"type": "success", "message": "Game started", "data": nil})
 }
 
-// handleWebSocketMessages handles WebSocket communication for a game session
-func (h *RoomHandler) handleWebSocketMessages(c *gin.Context, conn *websocket.Conn, roomID string, player model.Player) {
-	defer conn.Close()
-
-	for {
-		// Read message from WebSocket
-		_, msgBytes, err := conn.ReadMessage()
-		if err != nil {
-			return
-		}
-
-		// Parse message as JSON
-		var msg map[string]interface{}
-		if err := json.Unmarshal(msgBytes, &msg); err != nil {
-			conn.WriteJSON(gin.H{"type": "error", "message": "Invalid message format", "data": nil})
-			continue
-		}
-
-		typeVal, ok := msg["type"].(model.MessageType)
-		if !ok {
-			conn.WriteJSON(gin.H{"type": "error", "message": "Missing message type", "data": nil})
-			continue
-		}
-
-		switch typeVal {
-		// when a player joins a room
-		case model.MessageTypeJoinRoom:
-			h.handlePlayerJoinedRoom(c, conn, roomID, player)
-		case model.MessageTypeChooseGame:
-			h.handleGameChosen(c, conn, roomID, player, msg)
-		case model.MessageTypeGameChosen:
-			h.handleGameChosen(c, conn, roomID, player, msg)
-		case model.MessageTypeGameAccepted:
-			h.handleGameAccepted(c, conn, roomID, player, msg)
-		case model.MessageTypeGameMove, model.MessageTypeMoveMade:
-			h.handleGameMove(c, conn, roomID, player, msg)
-		case model.MessageTypeRejectGame:
-		default:
-			conn.WriteJSON(gin.H{"type": "error", "message": "Unknown message type", "data": nil})
-		}
-	}
-}
-
 func (h *RoomHandler) LeaveWaitingQueue(c *gin.Context) {
 	userInterface, exists := c.Get(middleware.AuthorizationPayloadKey)
 	if !exists {
@@ -296,102 +252,4 @@ func (h *RoomHandler) LeaveRoom(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"type": "success", "message": "Left room", "data": nil})
-}
-
-// handlePlayerJoinedRoom handles the player joining a room
-func (h *RoomHandler) handlePlayerJoinedRoom(c *gin.Context, conn *websocket.Conn, roomID string, player model.Player) {
-	// check if the room is valid
-	room, err := h.roomService.GetRoom(c, roomID)
-	if err != nil {
-		conn.WriteJSON(gin.H{"type": "error", "message": "Room not found", "data": nil})
-		return
-	}
-
-	// check if the player is in the room
-	_, exists := room.Players[player.User.ID]
-	if !exists {
-		conn.WriteJSON(gin.H{"type": "error", "message": "Player not found in room", "data": nil})
-		return
-	}
-
-	// Use the service method to handle player joined room
-	if err := h.roomService.HandlePlayerJoinedRoom(c, room, player); err != nil {
-		conn.WriteJSON(gin.H{"type": "error", "message": "Failed to notify other players", "data": nil})
-		return
-	}
-
-	// Send confirmation to the joining player
-	conn.WriteJSON(gin.H{"type": "joined_room", "message": "You joined the room", "data": nil})
-}
-
-// handleGameChosen handles a player choosing a game
-func (h *RoomHandler) handleGameChosen(c *gin.Context, conn *websocket.Conn, roomID string, player model.Player, msg map[string]interface{}) {
-	// check if the room is valid
-	room, err := h.roomService.GetRoom(c, roomID)
-	if err != nil {
-		conn.WriteJSON(gin.H{"type": "error", "message": "Room not found", "data": nil})
-		return
-	}
-
-	// Get the game type from the parsed message
-
-	gameTypeStr, ok := msg["game_type"].(string)
-	if !ok {
-		conn.WriteJSON(gin.H{"type": "error", "message": "Game type is required", "data": nil})
-		return
-	}
-
-	gameType := model.GameType(gameTypeStr)
-
-	// Handle the game choice through the service
-	if err := h.roomService.HandleGameChosen(c, room, player, gameType); err != nil {
-		conn.WriteJSON(gin.H{"type": "error", "message": "Failed to handle game choice", "data": nil})
-		return
-	}
-
-	// Send confirmation to the player who chose the game
-	conn.WriteJSON(gin.H{
-		"type":    "game_chosen_confirmation",
-		"message": "Your game choice has been recorded",
-		"data": map[string]interface{}{
-			"game_type": gameType,
-		},
-	})
-}
-
-// handleGameAccepted handles a player accepting a game
-func (h *RoomHandler) handleGameAccepted(c *gin.Context, conn *websocket.Conn, roomID string, player model.Player, msg map[string]interface{}) {
-	// check if the room is valid
-	room, err := h.roomService.GetRoom(c, roomID)
-	if err != nil {
-		conn.WriteJSON(gin.H{"type": "error", "message": "Room not found", "data": nil})
-		return
-	}
-
-	// Get the game type from the parsed message
-	gameTypeStr, ok := msg["game_type"].(string)
-	if !ok {
-		conn.WriteJSON(gin.H{"type": "error", "message": "Game type is required", "data": nil})
-		return
-	}
-
-	gameType := model.GameType(gameTypeStr)
-
-	// Handle the game choice through the service
-	if err := h.roomService.HandleGameAccepted(c, room, player, gameType); err != nil {
-		conn.WriteJSON(gin.H{"type": "error", "message": "Failed to handle game accepted", "data": nil})
-		return
-	}
-
-}
-
-// handleGameMove handles a player making a move in the game
-func (h *RoomHandler) handleGameMove(c *gin.Context, conn *websocket.Conn, roomID string, player model.Player, msg map[string]interface{}) {
-	// This will be implemented when the actual game logic is added
-	// For now, just acknowledge the move
-	conn.WriteJSON(gin.H{
-		"type":    "move_received",
-		"message": "Move received, processing...",
-		"data":    nil,
-	})
 }

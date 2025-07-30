@@ -35,7 +35,7 @@ func NewTicTacToe() model.Game {
 			Type:      model.TicTacToeGame,
 			Name:      "Tic Tac Toe",
 			Players:   make(map[string]model.Player),
-			IsStarted: false,
+			Status:    model.GameStatusNotStarted,
 			CreatedAt: time.Now(),
 		},
 		gameState: TicTacToeState{
@@ -61,7 +61,7 @@ func (t *TicTacToe) Start() error {
 	if len(t.state.Players) != 2 {
 		return fmt.Errorf("need exactly 2 players to start")
 	}
-	t.state.IsStarted = true
+	t.state.Status = model.GameStatusInProgress
 	// Set first player
 	for playerID := range t.state.Players {
 		t.gameState.CurrentPlayer = playerID
@@ -71,7 +71,7 @@ func (t *TicTacToe) Start() error {
 }
 
 func (t *TicTacToe) MakeMove(playerID string, move any) error {
-	if !t.state.IsStarted {
+	if t.state.Status != model.GameStatusInProgress {
 		return fmt.Errorf("game not started")
 	}
 	if playerID != t.gameState.CurrentPlayer {
@@ -102,15 +102,29 @@ func (t *TicTacToe) MakeMove(playerID string, move any) error {
 		}
 	}
 
+	if t.IsGameOver() {
+		t.state.Status = model.GameStatusOver
+	}
+
 	return nil
 }
 
 func (t *TicTacToe) IsGameOver() bool {
+	if t.state.Status == model.GameStatusOver {
+		return true
+	}
+
 	// Check rows
 	for i := 0; i < 3; i++ {
 		if t.gameState.Board[i][0] != "" &&
 			t.gameState.Board[i][0] == t.gameState.Board[i][1] &&
 			t.gameState.Board[i][1] == t.gameState.Board[i][2] {
+			// Found a winner
+			winnerID := t.gameState.Board[i][0]
+			if winner, exists := t.state.Players[winnerID]; exists {
+				t.state.Winner = &winner
+			}
+			t.state.Status = model.GameStatusOver
 			return true
 		}
 	}
@@ -120,6 +134,12 @@ func (t *TicTacToe) IsGameOver() bool {
 		if t.gameState.Board[0][i] != "" &&
 			t.gameState.Board[0][i] == t.gameState.Board[1][i] &&
 			t.gameState.Board[1][i] == t.gameState.Board[2][i] {
+			// Found a winner
+			winnerID := t.gameState.Board[0][i]
+			if winner, exists := t.state.Players[winnerID]; exists {
+				t.state.Winner = &winner
+			}
+			t.state.Status = model.GameStatusOver
 			return true
 		}
 	}
@@ -128,11 +148,23 @@ func (t *TicTacToe) IsGameOver() bool {
 	if t.gameState.Board[0][0] != "" &&
 		t.gameState.Board[0][0] == t.gameState.Board[1][1] &&
 		t.gameState.Board[1][1] == t.gameState.Board[2][2] {
+		// Found a winner
+		winnerID := t.gameState.Board[0][0]
+		if winner, exists := t.state.Players[winnerID]; exists {
+			t.state.Winner = &winner
+		}
+		t.state.Status = model.GameStatusOver
 		return true
 	}
 	if t.gameState.Board[0][2] != "" &&
 		t.gameState.Board[0][2] == t.gameState.Board[1][1] &&
 		t.gameState.Board[1][1] == t.gameState.Board[2][0] {
+		// Found a winner
+		winnerID := t.gameState.Board[0][2]
+		if winner, exists := t.state.Players[winnerID]; exists {
+			t.state.Winner = &winner
+		}
+		t.state.Status = model.GameStatusOver
 		return true
 	}
 
@@ -144,5 +176,16 @@ func (t *TicTacToe) IsGameOver() bool {
 			}
 		}
 	}
+	// It's a draw - no winner
+	t.state.Winner = nil
+	t.state.Status = model.GameStatusOver
 	return true
+}
+
+func (t *TicTacToe) GetWinner() *model.Player {
+	return t.state.Winner
+}
+
+func (t *TicTacToe) GetStatus() model.GameStatus {
+	return t.state.Status
 }

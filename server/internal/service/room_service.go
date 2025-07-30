@@ -72,6 +72,13 @@ func (s *RoomService) StartGame(ctx context.Context, roomID string) error {
 	if err != nil {
 		return fmt.Errorf("error starting game")
 	}
+
+	// update the room status to game started
+	room.Status = model.RoomStatusGameStarted
+	err = s.roomRepo.UpdateRoom(ctx, *room)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -251,17 +258,6 @@ func (s *RoomService) HandleGameChosen(ctx context.Context, room *model.Room, pl
 	// Record the player's game choice
 	room.GameSelection.PlayerChoices[player.User.ID] = gameType
 
-	// Check if both players have chosen games
-	if len(room.GameSelection.PlayerChoices) == 2 {
-		room.GameSelection.BothChosen = true
-	}
-
-	// Save the updated room state
-	err := s.roomRepo.UpdateRoom(ctx, *room)
-	if err != nil {
-		return err
-	}
-
 	// Notify the opposite player about the game choice
 	oppositePlayer, err := s.GetOppositePlayer(ctx, room.Players, player.User.ID)
 	if err != nil {
@@ -273,12 +269,6 @@ func (s *RoomService) HandleGameChosen(ctx context.Context, room *model.Room, pl
 			"player_id":   player.User.ID,
 			"player_name": player.User.Name,
 			"game_type":   gameType,
-			"both_chosen": room.GameSelection.BothChosen,
-		}
-
-		if room.GameSelection.BothChosen {
-			// Both players have chosen, show both choices
-			messageData["player_choices"] = room.GameSelection.PlayerChoices
 		}
 
 		err := oppositePlayer.Conn.WriteJSON(map[string]interface{}{
@@ -305,18 +295,48 @@ func (s *RoomService) GetGameSelectionState(ctx context.Context, roomID string) 
 
 // HandleGameAccepted handles when a player accepts a game
 func (s *RoomService) HandleGameAccepted(ctx context.Context, room *model.Room, player model.Player, gameType model.GameType) error {
+
+	// check if the opposite player has choose this game
+	oppositePlayer, err := s.GetOppositePlayer(ctx, room.Players, player.User.ID)
+	if err != nil {
+		return err
+	}
+
+	if room.GameSelection.PlayerChoices[oppositePlayer.User.ID] != gameType {
+		return errors.New("opposite player has not chosen this game")
+	}
+
 	// Record the player's game acceptance
 	room.GameSelection.PlayerChoices[player.User.ID] = gameType
 
-	// Check if both players have accepted games
-	if len(room.GameSelection.PlayerChoices) == 2 {
-		room.GameSelection.BothChosen = true
+	// notify the opposite player about the game acceptance
+	if oppositePlayer.Conn != nil {
+		err = oppositePlayer.Conn.WriteJSON(map[string]interface{}{
+			"type":    model.MessageTypeGameAccepted,
+			"message": "Your opponent has accepted the game.",
+		})
 	}
 
-	// Save the updated room state
-	err := s.roomRepo.UpdateRoom(ctx, *room)
+	// start the game
+	s.StartGame(ctx, room.ID)
+
+	return nil
+}
+
+// HandleGameRejected handles when a player rejects a game
+func (s *RoomService) HandleGameRejected(ctx context.Context, room *model.Room, player model.Player, gameType model.GameType) error {
+	// check if the opposite player has choose this game
+	oppositePlayer, err := s.GetOppositePlayer(ctx, room.Players, player.User.ID)
 	if err != nil {
 		return err
+	}
+
+	// notify the opposite player about the game rejection
+	if oppositePlayer.Conn != nil {
+		err = oppositePlayer.Conn.WriteJSON(map[string]interface{}{
+			"type":    model.MessageTypeGameRejected,
+			"message": "Your opponent has rejected the game.",
+		})
 	}
 
 	return nil
