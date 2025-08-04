@@ -26,6 +26,7 @@ type Game interface {
 	IsGameOver() bool
 	GetWinner() *Player
 	GetStatus() GameStatus
+	ResetState() error
 }
 
 // GameState holds common game state

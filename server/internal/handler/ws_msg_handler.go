@@ -44,6 +44,12 @@ func (h *RoomHandler) handleWebSocketMessages(c *gin.Context, conn *websocket.Co
 			h.handleGameRejected(c, conn, roomID, player, msg)
 		case model.MessageTypeGameMove:
 			h.handleGameMove(c, conn, roomID, player, msg)
+		case model.MessageTypeReplayGame:
+			h.handleReplayGame(c, conn, roomID, player, msg)
+		case model.MessageTypeReplayAccepted:
+			h.handleReplayAccepted(c, conn, roomID, player, msg)
+		case model.MessageTypeReplayRejected:
+			h.handleReplayRejected(c, conn, roomID, player, msg)
 		default:
 			conn.WriteJSON(gin.H{"type": "error", "message": "Unknown message type", "data": nil})
 		}
@@ -189,4 +195,55 @@ func (h *RoomHandler) handleGameMove(c *gin.Context, conn *websocket.Conn, roomI
 		"message": "Move received, processing...",
 		"data":    nil,
 	})
+}
+
+func (h *RoomHandler) handleReplayGame(c *gin.Context, conn *websocket.Conn, roomID string, player model.Player, msg map[string]interface{}) {
+	room, err := h.roomService.GetRoom(c, roomID)
+	if err != nil {
+		conn.WriteJSON(gin.H{"type": "error", "message": "Room not found", "data": nil})
+		return
+	}
+
+	_, exists := room.Players[player.User.ID]
+	if !exists {
+		conn.WriteJSON(gin.H{"type": "error", "message": "Player not found in room", "data": nil})
+		return
+	}
+
+	if err := h.roomService.HandleReplayGame(c, room, player, msg); err != nil {
+		conn.WriteJSON(gin.H{"type": "error", "message": "Failed to handle replay game", "data": nil})
+		return
+	}
+
+	conn.WriteJSON(gin.H{
+		"type":    "replay_game_received",
+		"message": "Replay game received, processing...",
+		"data":    nil,
+	})
+}
+
+func (h *RoomHandler) handleReplayAccepted(c *gin.Context, conn *websocket.Conn, roomID string, player model.Player, msg map[string]interface{}) {
+	room, err := h.roomService.GetRoom(c, roomID)
+	if err != nil {
+		conn.WriteJSON(gin.H{"type": "error", "message": "Room not found", "data": nil})
+		return
+	}
+
+	if err := h.roomService.HandleReplayAccepted(c, room, player, msg); err != nil {
+		conn.WriteJSON(gin.H{"type": "error", "message": "Failed to handle replay accepted", "data": nil})
+		return
+	}
+}
+
+func (h *RoomHandler) handleReplayRejected(c *gin.Context, conn *websocket.Conn, roomID string, player model.Player, msg map[string]interface{}) {
+	room, err := h.roomService.GetRoom(c, roomID)
+	if err != nil {
+		conn.WriteJSON(gin.H{"type": "error", "message": "Room not found", "data": nil})
+		return
+	}
+
+	if err := h.roomService.HandleReplayRejected(c, room, player, msg); err != nil {
+		conn.WriteJSON(gin.H{"type": "error", "message": "Failed to handle replay rejected", "data": nil})
+		return
+	}
 }

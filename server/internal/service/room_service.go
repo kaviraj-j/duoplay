@@ -317,9 +317,6 @@ func (s *RoomService) HandleGameAccepted(ctx context.Context, room *model.Room, 
 		})
 	}
 
-	// start the game
-	s.StartGame(ctx, room.ID)
-
 	return nil
 }
 
@@ -336,6 +333,65 @@ func (s *RoomService) HandleGameRejected(ctx context.Context, room *model.Room, 
 		err = oppositePlayer.Conn.WriteJSON(map[string]interface{}{
 			"type":    model.MessageTypeGameRejected,
 			"message": "Your opponent has rejected the game.",
+		})
+	}
+
+	return nil
+}
+
+func (s *RoomService) HandleReplayGame(ctx context.Context, room *model.Room, player model.Player, msg map[string]interface{}) error {
+	// check if the opposite player has choose this game
+	oppositePlayer, err := s.GetOppositePlayer(ctx, room.Players, player.User.ID)
+	if err != nil {
+		return err
+	}
+
+	// notify the opposite player about the replay game
+	if oppositePlayer.Conn != nil {
+		err = oppositePlayer.Conn.WriteJSON(map[string]interface{}{
+			"type":    model.MessageTypeReplayGame,
+			"message": "Your opponent has requested a replay.",
+		})
+	}
+
+	return nil
+}
+
+func (s *RoomService) HandleReplayAccepted(ctx context.Context, room *model.Room, player model.Player, msg map[string]interface{}) error {
+	// check if the opposite player has choose this game
+	oppositePlayer, err := s.GetOppositePlayer(ctx, room.Players, player.User.ID)
+	if err != nil {
+		return err
+	}
+
+	// notify the opposite player about the replay accepted
+	if oppositePlayer.Conn != nil {
+		err = oppositePlayer.Conn.WriteJSON(map[string]interface{}{
+			"type":    model.MessageTypeReplayAccepted,
+			"message": "Your opponent has accepted the replay.",
+		})
+	}
+
+	// reset the game state
+	room.Game.ResetState()
+
+	s.StartGame(ctx, room.ID)
+
+	return nil
+}
+
+func (s *RoomService) HandleReplayRejected(ctx context.Context, room *model.Room, player model.Player, msg map[string]interface{}) error {
+	// check if the opposite player has choose this game
+	oppositePlayer, err := s.GetOppositePlayer(ctx, room.Players, player.User.ID)
+	if err != nil {
+		return err
+	}
+
+	// notify the opposite player about the replay rejected
+	if oppositePlayer.Conn != nil {
+		err = oppositePlayer.Conn.WriteJSON(map[string]interface{}{
+			"type":    model.MessageTypeReplayRejected,
+			"message": "Your opponent has rejected the replay.",
 		})
 	}
 

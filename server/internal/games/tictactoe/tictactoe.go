@@ -182,6 +182,17 @@ func (t *TicTacToe) IsGameOver() bool {
 	return true
 }
 
+func (t *TicTacToe) ResetState() error {
+	t.gameState = TicTacToeState{
+		Board: [3][3]string{
+			{"", "", ""},
+			{"", "", ""},
+			{"", "", ""},
+		},
+	}
+	return nil
+}
+
 func (t *TicTacToe) GetWinner() *model.Player {
 	return t.state.Winner
 }
