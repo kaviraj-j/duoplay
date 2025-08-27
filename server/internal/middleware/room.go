@@ -22,7 +22,7 @@ func (roomMiddleware *RoomMiddleWare) IsRoomOwner() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		roomID := ctx.Param("roomID")
 		userPayload, _ := ctx.Get(AuthorizationPayloadKey)
-		user := userPayload.(model.User)
+		user := userPayload.(*model.User)
 
 		room, err := roomMiddleware.roomService.GetRoom(ctx, roomID)
 		if err != nil {

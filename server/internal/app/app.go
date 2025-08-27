@@ -14,16 +14,16 @@ import (
 )
 
 type App struct {
-	config         *config.Config
+	config         config.Config
 	userHandler    *handler.UserHandler
 	roomHandler    *handler.RoomHandler
-	gameHanlder    *handler.GameHandler
+	gameHandler    *handler.GameHandler
 	authMiddleware *middleware.AuthMiddleWare
 	roomMiddleware *middleware.RoomMiddleWare
 }
 
 // creates new app
-func Create(config *config.Config) (*App, error) {
+func Create(config config.Config) (*App, error) {
 	// get user repo, service, and handler
 	userRepository := repository.NewUserRepository()
 	userService, err := service.CreateUserService(userRepository, []byte(config.JwtSecret))
@@ -50,7 +50,7 @@ func Create(config *config.Config) (*App, error) {
 		authMiddleware: authMiddleware,
 		roomHandler:    roomHandler,
 		roomMiddleware: roomMiddleware,
-		gameHanlder:    gameHandler,
+		gameHandler:    gameHandler,
 	}
 	return app, nil
 }
@@ -88,14 +88,12 @@ func (app *App) setupRouter(router *gin.Engine) {
 	router.GET("/user/me", app.authMiddleware.IsAuthenticated(), app.userHandler.LoggedInUserDetails)
 
 	// room routes
-	router.POST("/room", app.authMiddleware.IsAuthenticated(), app.roomHandler.NewRoom)
+	router.GET("/room/join", app.authMiddleware.IsAuthenticated(), app.roomHandler.NewRoom)
 	router.GET("/room/:roomID", app.authMiddleware.IsAuthenticated(), app.roomMiddleware.IsRoomOwner(), app.roomHandler.GetRoom)
-	router.POST("/room/:roomID/join", app.authMiddleware.IsAuthenticated(), app.roomHandler.JoinRoom)
-	router.POST("/room/joinQueue", app.authMiddleware.IsAuthenticated(), app.roomHandler.JoinWaitingQueue)
-	router.POST("/room/leaveQueue", app.authMiddleware.IsAuthenticated(), app.roomHandler.LeaveWaitingQueue)
-	router.POST("/room/leave", app.authMiddleware.IsAuthenticated(), app.roomHandler.LeaveRoom)
+	router.GET("/room/:roomID/join", app.authMiddleware.IsAuthenticated(), app.roomHandler.JoinRoom)
+	router.GET("/room/joinQueue", app.authMiddleware.IsAuthenticated(), app.roomHandler.JoinWaitingQueue)
 
 	// game routes
-	router.GET("/game/list", app.gameHanlder.GetGamesList)
+	router.GET("/game/list", app.gameHandler.GetGamesList)
 
 }

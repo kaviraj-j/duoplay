@@ -15,7 +15,7 @@ func main() {
 	}
 
 	// create new app with config
-	app, err := app.Create(&config)
+	app, err := app.Create(config)
 	if err != nil {
 		log.Fatal(err)
 	}

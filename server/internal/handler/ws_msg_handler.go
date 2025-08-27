@@ -22,13 +22,13 @@ func (h *RoomHandler) handleWebSocketMessages(c *gin.Context, conn *websocket.Co
 		// Parse message as JSON
 		var msg map[string]interface{}
 		if err := json.Unmarshal(msgBytes, &msg); err != nil {
-			conn.WriteJSON(gin.H{"type": "error", "message": "Invalid message format", "data": nil})
+			conn.WriteJSON(WSMessage{Type: "error", Message: "Invalid message format", Data: nil})
 			continue
 		}
 
 		typeVal, ok := msg["type"].(model.MessageType)
 		if !ok {
-			conn.WriteJSON(gin.H{"type": "error", "message": "Missing message type", "data": nil})
+			conn.WriteJSON(WSMessage{Type: "error", Message: "Missing message type", Data: nil})
 			continue
 		}
 
@@ -51,7 +51,7 @@ func (h *RoomHandler) handleWebSocketMessages(c *gin.Context, conn *websocket.Co
 		case model.MessageTypeReplayRejected:
 			h.handleReplayRejected(c, conn, roomID, player, msg)
 		default:
-			conn.WriteJSON(gin.H{"type": "error", "message": "Unknown message type", "data": nil})
+			conn.WriteJSON(WSMessage{Type: "error", Message: "Unknown message type", Data: nil})
 		}
 	}
 }
@@ -61,25 +61,25 @@ func (h *RoomHandler) handlePlayerJoinedRoom(c *gin.Context, conn *websocket.Con
 	// check if the room is valid
 	room, err := h.roomService.GetRoom(c, roomID)
 	if err != nil {
-		conn.WriteJSON(gin.H{"type": "error", "message": "Room not found", "data": nil})
+		conn.WriteJSON(WSMessage{Type: "error", Message: "Room not found", Data: nil})
 		return
 	}
 
 	// check if the player is in the room
 	_, exists := room.Players[player.User.ID]
 	if !exists {
-		conn.WriteJSON(gin.H{"type": "error", "message": "Player not found in room", "data": nil})
+		conn.WriteJSON(WSMessage{Type: "error", Message: "Player not found in room", Data: nil})
 		return
 	}
 
 	// Use the service method to handle player joined room
 	if err := h.roomService.HandlePlayerJoinedRoom(c, room, player); err != nil {
-		conn.WriteJSON(gin.H{"type": "error", "message": "Failed to notify other players", "data": nil})
+		conn.WriteJSON(WSMessage{Type: "error", Message: "Failed to notify other players", Data: nil})
 		return
 	}
 
 	// Send confirmation to the joining player
-	conn.WriteJSON(gin.H{"type": "joined_room", "message": "You joined the room", "data": nil})
+	conn.WriteJSON(WSMessage{Type: "joined_room", Message: "You joined the room", Data: nil})
 }
 
 // handleGameChosen handles a player choosing a game
@@ -87,14 +87,14 @@ func (h *RoomHandler) handleGameChosen(c *gin.Context, conn *websocket.Conn, roo
 	// check if the room is valid
 	room, err := h.roomService.GetRoom(c, roomID)
 	if err != nil {
-		conn.WriteJSON(gin.H{"type": "error", "message": "Room not found", "data": nil})
+		conn.WriteJSON(WSMessage{Type: "error", Message: "Room not found", Data: nil})
 		return
 	}
 
 	// Get the game type from the parsed message
 	gameTypeStr, ok := msg["game_type"].(string)
 	if !ok {
-		conn.WriteJSON(gin.H{"type": "error", "message": "Game type is required", "data": nil})
+		conn.WriteJSON(WSMessage{Type: "error", Message: "Game type is required", Data: nil})
 		return
 	}
 
@@ -102,15 +102,15 @@ func (h *RoomHandler) handleGameChosen(c *gin.Context, conn *websocket.Conn, roo
 
 	// Handle the game choice through the service
 	if err := h.roomService.HandleGameChosen(c, room, player, gameType); err != nil {
-		conn.WriteJSON(gin.H{"type": "error", "message": "Failed to handle game choice", "data": nil})
+		conn.WriteJSON(WSMessage{Type: "error", Message: "Failed to handle game choice", Data: nil})
 		return
 	}
 
 	// Send confirmation to the player who chose the game
-	conn.WriteJSON(gin.H{
-		"type":    "game_chosen_confirmation",
-		"message": "Your game choice has been recorded",
-		"data": map[string]interface{}{
+	conn.WriteJSON(WSMessage{
+		Type:    "game_chosen_confirmation",
+		Message: "Your game choice has been recorded",
+		Data: map[string]interface{}{
 			"game_type": gameType,
 		},
 	})
@@ -121,14 +121,14 @@ func (h *RoomHandler) handleGameAccepted(c *gin.Context, conn *websocket.Conn, r
 	// check if the room is valid
 	room, err := h.roomService.GetRoom(c, roomID)
 	if err != nil {
-		conn.WriteJSON(gin.H{"type": "error", "message": "Room not found", "data": nil})
+		conn.WriteJSON(WSMessage{Type: "error", Message: "Room not found", Data: nil})
 		return
 	}
 
 	// Get the game type from the parsed message
 	gameTypeStr, ok := msg["game_type"].(string)
 	if !ok {
-		conn.WriteJSON(gin.H{"type": "error", "message": "Game type is required", "data": nil})
+		conn.WriteJSON(WSMessage{Type: "error", Message: "Game type is required", Data: nil})
 		return
 	}
 
@@ -136,7 +136,7 @@ func (h *RoomHandler) handleGameAccepted(c *gin.Context, conn *websocket.Conn, r
 
 	// Handle the game choice through the service
 	if err := h.roomService.HandleGameAccepted(c, room, player, gameType); err != nil {
-		conn.WriteJSON(gin.H{"type": "error", "message": "Failed to handle game accepted", "data": nil})
+		conn.WriteJSON(WSMessage{Type: "error", Message: "Failed to handle game accepted", Data: nil})
 		return
 	}
 
@@ -147,14 +147,14 @@ func (h *RoomHandler) handleGameRejected(c *gin.Context, conn *websocket.Conn, r
 	// check if the room is valid
 	room, err := h.roomService.GetRoom(c, roomID)
 	if err != nil {
-		conn.WriteJSON(gin.H{"type": "error", "message": "Room not found", "data": nil})
+		conn.WriteJSON(WSMessage{Type: "error", Message: "Room not found", Data: nil})
 		return
 	}
 
 	// Get the game type from the parsed message
 	gameTypeStr, ok := msg["game_type"].(string)
 	if !ok {
-		conn.WriteJSON(gin.H{"type": "error", "message": "Game type is required", "data": nil})
+		conn.WriteJSON(WSMessage{Type: "error", Message: "Game type is required", Data: nil})
 		return
 	}
 
@@ -162,7 +162,7 @@ func (h *RoomHandler) handleGameRejected(c *gin.Context, conn *websocket.Conn, r
 
 	// Handle the game choice through the service
 	if err := h.roomService.HandleGameRejected(c, room, player, gameType); err != nil {
-		conn.WriteJSON(gin.H{"type": "error", "message": "Failed to handle game rejected", "data": nil})
+		conn.WriteJSON(WSMessage{Type: "error", Message: "Failed to handle game rejected", Data: nil})
 		return
 	}
 }
@@ -171,66 +171,66 @@ func (h *RoomHandler) handleGameRejected(c *gin.Context, conn *websocket.Conn, r
 func (h *RoomHandler) handleGameMove(c *gin.Context, conn *websocket.Conn, roomID string, player model.Player, msg map[string]interface{}) {
 	room, err := h.roomService.GetRoom(c, roomID)
 	if err != nil {
-		conn.WriteJSON(gin.H{"type": "error", "message": "Room not found", "data": nil})
+		conn.WriteJSON(WSMessage{Type: "error", Message: "Room not found", Data: nil})
 		return
 	}
 
 	_, exists := room.Players[player.User.ID]
 	if !exists {
-		conn.WriteJSON(gin.H{"type": "error", "message": "Player not found in room", "data": nil})
+		conn.WriteJSON(WSMessage{Type: "error", Message: "Player not found in room", Data: nil})
 		return
 	}
 
 	move, ok := msg["move"]
 	if !ok {
-		conn.WriteJSON(gin.H{"type": "error", "message": "Move is required", "data": nil})
+		conn.WriteJSON(WSMessage{Type: "error", Message: "Move is required", Data: nil})
 		return
 	}
 
 	room.Game.MakeMove(player.User.ID, move)
 
 	// Get the game type from the parsed message
-	conn.WriteJSON(gin.H{
-		"type":    "move_received",
-		"message": "Move received, processing...",
-		"data":    nil,
+	conn.WriteJSON(WSMessage{
+		Type:    "move_received",
+		Message: "Move received, processing...",
+		Data:    nil,
 	})
 }
 
 func (h *RoomHandler) handleReplayGame(c *gin.Context, conn *websocket.Conn, roomID string, player model.Player, msg map[string]interface{}) {
 	room, err := h.roomService.GetRoom(c, roomID)
 	if err != nil {
-		conn.WriteJSON(gin.H{"type": "error", "message": "Room not found", "data": nil})
+		conn.WriteJSON(WSMessage{Type: "error", Message: "Room not found", Data: nil})
 		return
 	}
 
 	_, exists := room.Players[player.User.ID]
 	if !exists {
-		conn.WriteJSON(gin.H{"type": "error", "message": "Player not found in room", "data": nil})
+		conn.WriteJSON(WSMessage{Type: "error", Message: "Player not found in room", Data: nil})
 		return
 	}
 
 	if err := h.roomService.HandleReplayGame(c, room, player, msg); err != nil {
-		conn.WriteJSON(gin.H{"type": "error", "message": "Failed to handle replay game", "data": nil})
+		conn.WriteJSON(WSMessage{Type: "error", Message: "Failed to handle replay game", Data: nil})
 		return
 	}
 
-	conn.WriteJSON(gin.H{
-		"type":    "replay_game_received",
-		"message": "Replay game received, processing...",
-		"data":    nil,
+	conn.WriteJSON(WSMessage{
+		Type:    "replay_game_received",
+		Message: "Replay game received, processing...",
+		Data:    nil,
 	})
 }
 
 func (h *RoomHandler) handleReplayAccepted(c *gin.Context, conn *websocket.Conn, roomID string, player model.Player, msg map[string]interface{}) {
 	room, err := h.roomService.GetRoom(c, roomID)
 	if err != nil {
-		conn.WriteJSON(gin.H{"type": "error", "message": "Room not found", "data": nil})
+		conn.WriteJSON(WSMessage{Type: "error", Message: "Room not found", Data: nil})
 		return
 	}
 
 	if err := h.roomService.HandleReplayAccepted(c, room, player, msg); err != nil {
-		conn.WriteJSON(gin.H{"type": "error", "message": "Failed to handle replay accepted", "data": nil})
+		conn.WriteJSON(WSMessage{Type: "error", Message: "Failed to handle replay accepted", Data: nil})
 		return
 	}
 }
@@ -238,12 +238,12 @@ func (h *RoomHandler) handleReplayAccepted(c *gin.Context, conn *websocket.Conn,
 func (h *RoomHandler) handleReplayRejected(c *gin.Context, conn *websocket.Conn, roomID string, player model.Player, msg map[string]interface{}) {
 	room, err := h.roomService.GetRoom(c, roomID)
 	if err != nil {
-		conn.WriteJSON(gin.H{"type": "error", "message": "Room not found", "data": nil})
+		conn.WriteJSON(WSMessage{Type: "error", Message: "Room not found", Data: nil})
 		return
 	}
 
 	if err := h.roomService.HandleReplayRejected(c, room, player, msg); err != nil {
-		conn.WriteJSON(gin.H{"type": "error", "message": "Failed to handle replay rejected", "data": nil})
+		conn.WriteJSON(WSMessage{Type: "error", Message: "Failed to handle replay rejected", Data: nil})
 		return
 	}
 }

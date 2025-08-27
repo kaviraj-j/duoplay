@@ -28,6 +28,9 @@ const (
 	MessageTypeError           MessageType = "error"
 	MessageTypeGameSelection   MessageType = "game_selection"
 	MessageTypeBothGamesChosen MessageType = "both_games_chosen"
+	MessageTypeAuth            MessageType = "auth"
+	MessageTypeRoomCreated     MessageType = "room_created"
+	MessageTypeQueueJoined     MessageType = "queue_joined"
 )
 
 type RoomStatus string

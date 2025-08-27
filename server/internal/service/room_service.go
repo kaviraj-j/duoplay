@@ -33,9 +33,6 @@ func NewRoomService(roomRepo repository.RoomRepository, queueRepo repository.Que
 		cancel:    cancel,
 	}
 
-	// Set up the match callback
-	queueRepo.SetMatchCallback(service.CreateMatch)
-
 	// Start the centralized queue monitor
 	go service.monitorQueue(ctx)
 
@@ -88,17 +85,14 @@ func (s *RoomService) GetGame(ctx context.Context, roomID string) (*model.Game, 
 
 func (s *RoomService) JoinQueue(ctx context.Context, userID string, conn *websocket.Conn) error {
 	// check if user is already in queue
-	isInQueue, err := s.queueRepo.PlayerExistsInQueue(ctx, userID)
-	if err != nil {
-		return fmt.Errorf("error checking if user is in queue")
-	}
+	isInQueue := s.queueRepo.PlayerExistsInQueue(ctx, userID)
 
 	if isInQueue {
 		return ErrorUserAlreadyInQueue
 	}
 
 	// Add player to queue
-	err = s.queueRepo.AddToQueue(ctx, userID, conn)
+	err := s.queueRepo.AddToQueue(ctx, userID, conn)
 	if err != nil {
 		return err
 	}
@@ -110,7 +104,7 @@ func (s *RoomService) RemoveFromQueue(ctx context.Context, userID string) error 
 }
 
 func (s *RoomService) monitorQueue(ctx context.Context) {
-	ticker := time.NewTicker(2 * time.Second) // Check every 2 seconds
+	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
 
 	for {

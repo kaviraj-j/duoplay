@@ -14,8 +14,7 @@ type QueueRepository interface {
 	RemoveFromQueue(ctx context.Context, userID string) error
 	GetWaitingPlayers(ctx context.Context) ([]string, error)
 	GetPlayerConnection(ctx context.Context, userID string) (*websocket.Conn, error)
-	SetMatchCallback(callback func(ctx context.Context, player1ID, player2ID string) (*model.Room, error))
-	PlayerExistsInQueue(ctx context.Context, userID string) (bool, error)
+	PlayerExistsInQueue(ctx context.Context, userID string) bool
 }
 
 type inMemoryQueueRepository struct {
@@ -28,10 +27,6 @@ func NewQueueRepository() QueueRepository {
 	return &inMemoryQueueRepository{
 		waitingPlayers: make(map[string]*websocket.Conn),
 	}
-}
-
-func (q *inMemoryQueueRepository) SetMatchCallback(callback func(ctx context.Context, player1ID, player2ID string) (*model.Room, error)) {
-	q.matchCallback = callback
 }
 
 func (q *inMemoryQueueRepository) AddToQueue(ctx context.Context, userID string, conn *websocket.Conn) error {
@@ -59,12 +54,12 @@ func (q *inMemoryQueueRepository) GetWaitingPlayers(ctx context.Context) ([]stri
 	q.mu.RLock()
 	defer q.mu.RUnlock()
 
-	players := make([]string, 0, len(q.waitingPlayers))
+	playerIds := make([]string, 0, len(q.waitingPlayers))
 	for userID := range q.waitingPlayers {
-		players = append(players, userID)
+		playerIds = append(playerIds, userID)
 	}
 
-	return players, nil
+	return playerIds, nil
 }
 
 func (q *inMemoryQueueRepository) GetPlayerConnection(ctx context.Context, userID string) (*websocket.Conn, error) {
@@ -79,10 +74,10 @@ func (q *inMemoryQueueRepository) GetPlayerConnection(ctx context.Context, userI
 	return conn, nil
 }
 
-func (q *inMemoryQueueRepository) PlayerExistsInQueue(ctx context.Context, userID string) (bool, error) {
+func (q *inMemoryQueueRepository) PlayerExistsInQueue(ctx context.Context, userID string) bool {
 	q.mu.RLock()
 	defer q.mu.RUnlock()
 
 	_, exists := q.waitingPlayers[userID]
-	return exists, nil
+	return exists
 }

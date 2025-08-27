@@ -31,7 +31,12 @@ func (authMiddleware *AuthMiddleWare) IsAuthenticated() gin.HandlerFunc {
 
 		// get token from header
 		authorizationHeader := ctx.GetHeader(authHeaderKey)
+		token := ctx.Query("token")
+		if len(token) != 0 {
+			authorizationHeader = "Bearer " + token
+		}
 		if len(authorizationHeader) == 0 {
+
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"type":    "error",
 				"message": "authorization header not provided",

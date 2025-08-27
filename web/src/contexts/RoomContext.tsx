@@ -14,16 +14,14 @@ const RoomContext = createContext<RoomContextType | undefined>(undefined);
 
 export const RoomProvider = ({ children }: { children: ReactNode }) => {
   const [room, setRoom] = useState<Room | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchRoom = async (roomID: string): Promise<Room | null> => {
       try {
         const response = await roomApi.getRoom(roomID);
-        const roomData = response.data as Room;
+        const roomData = response as Room;
         return roomData;
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error(err);
         return null;
       }
@@ -36,39 +34,35 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
       fetchRoom(roomData.id).then((room) => {
         if (room) {
           setRoom(room);
+        } else {
+          localStorage.removeItem("duoplay_room");
         }
       });
+    } else {
+      localStorage.removeItem("duoplay_room");
     }
   }, []);
 
   const createRoom = async (roomData: Room): Promise<Room | null> => {
-    setLoading(true);
-    setError(null);
     try {
       setRoom(roomData);
       localStorage.setItem("duoplay_room", JSON.stringify(roomData));
       return roomData;
-    } catch (err: any) {
-      setError((err as Error)?.message || "Failed to create room");
+    } catch (err: unknown) {
+      console.error(err)
       return null;
-    } finally {
-      setLoading(false);
     }
   };
 
   const joinRoom = async (roomID: string): Promise<Room | null> => {
-    setLoading(true);
-    setError(null);
     try {
       const response = await roomApi.joinRoom(roomID);
       const roomData = response.data as Room;
       setRoom(roomData);
       return roomData;
-    } catch (err: any) {
-      setError((err as Error)?.message || "Failed to join room");
-      return null;
-    } finally {
-      setLoading(false);
+    } catch (err: unknown) {
+      console.log(err)
+      return null
     }
   };
 
@@ -77,8 +71,6 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
     if (!roomID) {
       return;
     }
-    setLoading(true);
-    setError(null);
 
     setRoom(null);
     localStorage.removeItem("duoplay_room");

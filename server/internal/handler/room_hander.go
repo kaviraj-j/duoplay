@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -9,6 +10,13 @@ import (
 	"github.com/kaviraj-j/duoplay/internal/model"
 	"github.com/kaviraj-j/duoplay/internal/service"
 )
+
+// WebSocket message structs
+type WSMessage struct {
+	Type    string      `json:"type"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data,omitempty"`
+}
 
 type RoomHandler struct {
 	roomService *service.RoomService
@@ -47,7 +55,8 @@ func (h *RoomHandler) NewRoom(c *gin.Context) {
 
 	userInterface, exists := c.Get(middleware.AuthorizationPayloadKey)
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"type": "error", "message": "Unauthorized", "data": nil})
+		conn.WriteJSON(WSMessage{Type: "error", Message: "Unauthorized", Data: nil})
+		conn.Close()
 		return
 	}
 	user := userInterface.(*model.User)
@@ -60,17 +69,20 @@ func (h *RoomHandler) NewRoom(c *gin.Context) {
 
 	if err := h.roomService.AddPlayer(c, room.ID, player); err != nil {
 		conn.Close()
-		conn.WriteJSON(gin.H{"type": "error", "message": err.Error(), "data": nil})
+		conn.WriteJSON(WSMessage{Type: "error", Message: err.Error(), Data: nil})
 		return
 	}
 
-	go h.handleWebSocketMessages(c, conn, room.ID, player)
-
-	c.JSON(http.StatusCreated, gin.H{
-		"type":    "success",
-		"message": "Room created successfully",
-		"data":    room,
+	// Send room created message via WebSocket
+	fmt.Printf("Sending room_created message to player %s for room %s\n", player.User.ID, room.ID)
+	conn.WriteJSON(WSMessage{
+		Type:    "room_created",
+		Message: "Room created successfully",
+		Data:    room,
 	})
+
+	fmt.Printf("Starting WebSocket message handler for player %s in room %s\n", player.User.ID, room.ID)
+	go h.handleWebSocketMessages(c, conn, room.ID, player)
 }
 
 // JoinRoom handles player joining a room via WebSocket
@@ -104,13 +116,14 @@ func (h *RoomHandler) JoinRoom(c *gin.Context) {
 
 	room, err := h.roomService.GetRoom(c, roomID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"type": "error", "message": "Room not found", "data": nil})
+		conn.WriteJSON(WSMessage{Type: "error", Message: "Room not found", Data: nil})
+		conn.Close()
 		return
 	}
 
 	if err := h.roomService.AddPlayer(c, roomID, player); err != nil {
 		conn.Close()
-		conn.WriteJSON(gin.H{"type": "error", "message": err.Error(), "data": nil})
+		conn.WriteJSON(WSMessage{Type: "error", Message: err.Error(), Data: nil})
 		return
 	}
 
@@ -118,14 +131,21 @@ func (h *RoomHandler) JoinRoom(c *gin.Context) {
 	room.Status = model.RoomStatusGameSelection
 	err = h.roomService.UpdateRoom(c, *room)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"type": "error", "message": "Failed to update room", "data": nil})
+		conn.WriteJSON(WSMessage{Type: "error", Message: "Failed to update room", Data: nil})
+		conn.Close()
 		return
 	}
 
+	// Send joined room message via WebSocket
+	fmt.Printf("Sending joined_room message to player %s for room %s\n", player.User.ID, roomID)
+	conn.WriteJSON(WSMessage{
+		Type:    "joined_room",
+		Message: "Joined room successfully",
+		Data:    room,
+	})
+
 	// Handle WebSocket connection
 	go h.handleWebSocketMessages(c, conn, roomID, player)
-
-	c.JSON(http.StatusOK, gin.H{"type": "success", "message": "Joined room", "data": room})
 }
 
 func (h *RoomHandler) JoinWaitingQueue(c *gin.Context) {
@@ -147,12 +167,19 @@ func (h *RoomHandler) JoinWaitingQueue(c *gin.Context) {
 	if err := h.roomService.JoinQueue(c, user.ID, conn); err != nil {
 		conn.Close()
 		if err == service.ErrorUserAlreadyInQueue {
-			c.JSON(http.StatusBadRequest, gin.H{"type": "error", "message": "User is already in queue", "data": nil})
+			conn.WriteJSON(WSMessage{Type: "error", Message: "User is already in queue", Data: nil})
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"type": "error", "message": "Failed to join queue", "data": nil})
+			conn.WriteJSON(WSMessage{Type: "error", Message: "Failed to join queue", Data: nil})
 		}
 		return
 	}
+
+	// Send queue joined message via WebSocket
+	conn.WriteJSON(WSMessage{
+		Type:    "queue_joined",
+		Message: "Successfully joined queue",
+		Data:    nil,
+	})
 
 	// Handle queue WebSocket connection
 	go h.handleQueueConnection(c, conn, user.ID)
@@ -163,9 +190,9 @@ func (h *RoomHandler) handleQueueConnection(ctx *gin.Context, conn *websocket.Co
 	defer conn.Close()
 
 	// Send initial message
-	conn.WriteJSON(gin.H{
-		"type":    "queue_joined",
-		"message": "Waiting for an opponent to connect...",
+	conn.WriteJSON(WSMessage{
+		Type:    "queue_joined",
+		Message: "Waiting for an opponent to connect...",
 	})
 
 	for {
