@@ -74,14 +74,12 @@ func (h *RoomHandler) NewRoom(c *gin.Context) {
 	}
 
 	// Send room created message via WebSocket
-	fmt.Printf("Sending room_created message to player %s for room %s\n", player.User.ID, room.ID)
 	conn.WriteJSON(WSMessage{
 		Type:    "room_created",
 		Message: "Room created successfully",
-		Data:    room,
+		Data:    room.GetRoomResponse(),
 	})
 
-	fmt.Printf("Starting WebSocket message handler for player %s in room %s\n", player.User.ID, room.ID)
 	go h.handleWebSocketMessages(c, conn, room.ID, player)
 }
 
@@ -141,7 +139,7 @@ func (h *RoomHandler) JoinRoom(c *gin.Context) {
 	conn.WriteJSON(WSMessage{
 		Type:    "joined_room",
 		Message: "Joined room successfully",
-		Data:    room,
+		Data:    room.GetRoomResponse(),
 	})
 
 	// Handle WebSocket connection

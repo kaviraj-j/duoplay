@@ -11,8 +11,9 @@ export const roomApi = {
     return wsManager.createRoomConnection();
   },
 
-  joinRoom: (roomID: string) => api.post(`/room/${roomID}/join`),
-
+  joinRoom: async (roomId: string): Promise<{ roomId: string; ws: WebSocket }> => {    
+    return wsManager.joinRoom(roomId);
+  },
   joinQueue: () => api.post("/room/queue"),
   leaveQueue: () => api.post("/room/leaveQueue"),
   leaveRoom: (roomID: string) => {

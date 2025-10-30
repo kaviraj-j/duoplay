@@ -1,6 +1,6 @@
 import { useRoom } from "@/contexts/RoomContext";
 
-const tictactoe = () => {
+const TicTacToePage = () => {
   const { room } = useRoom();
   if (!room) {
     return <>No room found</>;
@@ -10,4 +10,4 @@ const tictactoe = () => {
   )
 }
 
-export default tictactoe
+export default TicTacToePage

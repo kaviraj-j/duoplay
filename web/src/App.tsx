@@ -6,6 +6,8 @@ import GamePage from "@/pages/games";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoutes";
 import { Layout } from "@/components/layout/Layout";
 import { RoomProvider } from "@/contexts/RoomContext";
+import JoinRoom from "@/components/room/JoinRoom";
+
 function App() {
   return (
     <AuthProvider>
@@ -14,6 +16,14 @@ function App() {
           <Routes>
             <Route element={<Layout />}>
               <Route path="/" element={<HomePage />}></Route>
+              <Route
+                path="/room/:roomUid/join"
+                element={
+                  <ProtectedRoute>
+                    <JoinRoom />
+                  </ProtectedRoute>
+                }
+              ></Route>
               <Route
                 path="/game/:gameName"
                 element={

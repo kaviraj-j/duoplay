@@ -7,6 +7,7 @@ export interface IWebSocketManager {
   addConnection(roomId: string, ws: WebSocket): void;
   disconnectAll(): void;
   createRoomConnection(): Promise<{ roomId: string; ws: WebSocket }>;
+  joinRoom(roomId: string): Promise<{ roomId: string; ws: WebSocket }>;
 }
 
 // WebSocket connection manager implementation
@@ -76,17 +77,16 @@ class WebSocketManager implements IWebSocketManager {
     this.connections.clear();
   }
 
-  // Create a room WebSocket connection (for room creation)
   createRoomConnection(): Promise<{ roomId: string; ws: WebSocket }> {
     const token = localStorage.getItem("duoplay_token");
     const wsUrl = `${this.baseUrl}/room/join?token=${token}`;
     const ws = new WebSocket(wsUrl);
-  
+
     return new Promise((resolve, reject) => {
       // Wait for connection to open FIRST
       ws.addEventListener("open", () => {
         console.log("WebSocket connection opened");
-        
+
         // NOW start listening for messages
         ws.addEventListener("message", (event) => {
           try {
@@ -100,17 +100,51 @@ class WebSocketManager implements IWebSocketManager {
               reject(new Error(data.message));
             }
           } catch (error: unknown) {
-            console.error(error)
+            console.error(error);
             reject(new Error("Failed to parse server response"));
           }
         });
       });
-  
+
       ws.addEventListener("error", (error) => {
         console.error("WebSocket error:", error);
         reject(new Error("WebSocket connection failed"));
       });
-  
+
+      // Timeout after 10 seconds
+      setTimeout(() => {
+        reject(new Error("Connection timeout"));
+      }, 10000);
+    });
+  }
+
+  joinRoom(roomId: string): Promise<{ roomId: string; ws: WebSocket }> {
+    const token = localStorage.getItem("duoplay_token");
+    const wsUrl = `${this.baseUrl}/room/${roomId}/join?token=${token}`;
+    const ws = new WebSocket(wsUrl);
+
+    return new Promise((resolve, reject) => {
+      // Wait for connection to open FIRST
+      ws.addEventListener("open", () => {
+        resolve({ roomId, ws })
+      });
+
+      // NOW start listening for messages
+      ws.addEventListener("message", (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log("message received", data);
+        } catch (error: unknown) {
+          console.error(error);
+          reject(new Error("Failed to parse server response"));
+        }
+      });
+
+      ws.addEventListener("error", (error) => {
+        console.error("WebSocket error:", error);
+        reject(new Error("WebSocket connection failed"));
+      });
+
       // Timeout after 10 seconds
       setTimeout(() => {
         reject(new Error("Connection timeout"));
