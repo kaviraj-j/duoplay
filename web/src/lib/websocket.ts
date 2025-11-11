@@ -1,3 +1,5 @@
+import { messageHandler } from "@/handlers/roomHandler";
+
 // WebSocket connection manager interface
 export interface IWebSocketManager {
   connect(roomId: string, token?: string): WebSocket;
@@ -83,38 +85,47 @@ class WebSocketManager implements IWebSocketManager {
     const ws = new WebSocket(wsUrl);
 
     return new Promise((resolve, reject) => {
-      // Wait for connection to open FIRST
+      const timeout = setTimeout(() => {
+        reject(new Error("Connection timeout"));
+      }, 10000);
+
       ws.addEventListener("open", () => {
         console.log("WebSocket connection opened");
 
-        // NOW start listening for messages
-        ws.addEventListener("message", (event) => {
+        const tmpListener = (event: MessageEvent) => {
           try {
-            console.log("Received message:", event.data);
             const data = JSON.parse(event.data);
+
             if (data.type === "room_created") {
               const roomId = data.data.id;
+
+              ws.removeEventListener("message", tmpListener);
+
+              ws.addEventListener("message", messageHandler);
+
               this.addConnection(roomId, ws);
+              clearTimeout(timeout);
               resolve({ roomId, ws });
             } else if (data.type === "error") {
+              clearTimeout(timeout);
+              ws.removeEventListener("message", tmpListener);
               reject(new Error(data.message));
             }
-          } catch (error: unknown) {
+          } catch (error) {
             console.error(error);
+            clearTimeout(timeout);
+            ws.removeEventListener("message", tmpListener);
             reject(new Error("Failed to parse server response"));
           }
-        });
+        };
+
+        ws.addEventListener("message", tmpListener);
       });
 
       ws.addEventListener("error", (error) => {
         console.error("WebSocket error:", error);
         reject(new Error("WebSocket connection failed"));
       });
-
-      // Timeout after 10 seconds
-      setTimeout(() => {
-        reject(new Error("Connection timeout"));
-      }, 10000);
     });
   }
 
@@ -126,19 +137,11 @@ class WebSocketManager implements IWebSocketManager {
     return new Promise((resolve, reject) => {
       // Wait for connection to open FIRST
       ws.addEventListener("open", () => {
-        resolve({ roomId, ws })
+        resolve({ roomId, ws });
       });
 
       // NOW start listening for messages
-      ws.addEventListener("message", (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          console.log("message received", data);
-        } catch (error: unknown) {
-          console.error(error);
-          reject(new Error("Failed to parse server response"));
-        }
-      });
+      ws.addEventListener("message", messageHandler);
 
       ws.addEventListener("error", (error) => {
         console.error("WebSocket error:", error);

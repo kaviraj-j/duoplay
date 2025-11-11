@@ -20,12 +20,17 @@ const ChooseOpponent = () => {
   const [roomId, setRoomId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
-  const {room} = useRoom();
+  const { saveRoom } = useRoom();
 
   const handleOpen = () => setOpen(true);
   const handleClose = () => {
     setOpen(false);
-    setRoomId(null);
+    if (roomId) {
+      // Save room to context
+      roomApi.getRoom(roomId).then((room) => {
+        saveRoom(room);
+      });
+    }
   };
 
   const generateRoomJoinLink = (roomId: string) =>
@@ -129,10 +134,7 @@ const ChooseOpponent = () => {
                     onClick={handleLinkCopy}
                     className="!min-w-0 !p-1 hover:!bg-gray-100"
                   >
-                    <ContentCopy
-                      fontSize="small"
-                      className="text-gray-600"
-                    />
+                    <ContentCopy fontSize="small" className="text-gray-600" />
                   </Button>
                 </Tooltip>
               </Paper>
