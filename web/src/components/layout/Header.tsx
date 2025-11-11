@@ -20,7 +20,7 @@ const Header = () => {
         <h1 className="text-xl font-bold">DuoPlay</h1>
         {user && (
           <div>
-            {room && console.log(room) ? (
+            {room ? (
               <div className="flex items-center gap-4">
                 <span>Room: {room.id}</span>
                 <LeaveRoomButton roomId={room.id} />

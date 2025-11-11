@@ -13,12 +13,14 @@ import { useState } from "react";
 import { roomApi } from "@/api/room";
 import constants from "@/contants";
 import { ContentCopy } from "@mui/icons-material";
+import { useRoom } from "@/contexts/RoomContext";
 
 const ChooseOpponent = () => {
   const [open, setOpen] = useState(false);
   const [roomId, setRoomId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const {room} = useRoom();
 
   const handleOpen = () => setOpen(true);
   const handleClose = () => {

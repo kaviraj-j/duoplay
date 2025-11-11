@@ -8,7 +8,7 @@ const JoinRoom = () => {
   console.log("JoinRoom");
   const { roomUid } = useParams<{ roomUid: string }>();
   const navigate = useNavigate();
-  const { joinRoom } = useRoom();
+  const { saveRoom } = useRoom();
   const [isJoining, setIsJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,7 +28,8 @@ const JoinRoom = () => {
         
         if (response.roomId) {
           // Use the context to join the room
-          const room = await joinRoom(roomUid);
+          const room = await roomApi.getRoom(response.roomId);
+          saveRoom(room)
           if (room) {
             // Redirect to the game selection or game page
             navigate("/");
@@ -45,7 +46,7 @@ const JoinRoom = () => {
     };
 
     handleJoinRoom();
-  }, [roomUid, joinRoom, navigate]);
+  }, [roomUid, navigate]);
 
   if (isJoining) {
     return (

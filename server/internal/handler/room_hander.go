@@ -142,6 +142,19 @@ func (h *RoomHandler) JoinRoom(c *gin.Context) {
 		Data:    room.GetRoomResponse(),
 	})
 
+	// Send message to the other player
+	var otherPlayer model.Player
+	for userId, p := range room.Players {
+		if userId != user.ID {
+			otherPlayer = p
+			break
+		}
+	}
+	otherPlayer.Conn.WriteJSON(WSMessage{
+		Type:    "joined_room",
+		Message: "Opponent has joined room",
+	})
+
 	// Handle WebSocket connection
 	go h.handleWebSocketMessages(c, conn, roomID, player)
 }
@@ -229,7 +242,7 @@ func (h *RoomHandler) GetRoom(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"type": "success", "message": "Room fetched successfully", "data": room})
+	c.JSON(http.StatusOK, gin.H{"type": "success", "message": "Room fetched successfully", "data": room.GetRoomResponse()})
 }
 
 // StartGame initiates the game in the room

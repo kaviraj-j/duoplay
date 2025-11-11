@@ -91,6 +91,7 @@ func (app *App) setupRouter(router *gin.Engine) {
 	router.GET("/room/join", app.authMiddleware.IsAuthenticated(), app.roomHandler.NewRoom)
 	router.GET("/room/:roomID", app.authMiddleware.IsAuthenticated(), app.roomMiddleware.IsRoomOwner(), app.roomHandler.GetRoom)
 	router.GET("/room/:roomID/join", app.authMiddleware.IsAuthenticated(), app.roomHandler.JoinRoom)
+	router.GET("/room/:roomID/leave", app.authMiddleware.IsAuthenticated(), app.roomHandler.LeaveRoom)
 	router.GET("/room/joinQueue", app.authMiddleware.IsAuthenticated(), app.roomHandler.JoinWaitingQueue)
 
 	// game routes

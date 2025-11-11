@@ -5,10 +5,10 @@ import type { Room } from "@/types";
 
 type RoomContextType = {
   room: Room | null;
-  createRoom: (roomData: Room) => Promise<Room | null>;
-  joinRoom: (roomID: string) => Promise<Room | null>;
-  leaveRoom: () => Promise<void>;
+  saveRoom: (room: Room) => void;
+  removeRoom: () => void;
 };
+
 
 const RoomContext = createContext<RoomContextType | undefined>(undefined);
 
@@ -43,41 +43,19 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const createRoom = async (roomData: Room): Promise<Room | null> => {
-    try {
-      setRoom(roomData);
-      localStorage.setItem("duoplay_room", JSON.stringify(roomData));
-      return roomData;
-    } catch (err: unknown) {
-      console.error(err)
-      return null;
-    }
+  const saveRoom = (room: Room) => {
+    localStorage.setItem("duoplay_room", JSON.stringify(room));
+    setRoom(room);
   };
 
-  const joinRoom = async (roomID: string): Promise<Room | null> => {
-    try {
-      const response = await roomApi.joinRoom(roomID);
-      const roomData = response.data as Room;
-      setRoom(roomData);
-      return roomData;
-    } catch (err: unknown) {
-      console.log(err)
-      return null
-    }
-  };
-
-  const leaveRoom = async (): Promise<void> => {
-    const roomID = room?.id;
-    if (!roomID) {
-      return;
-    }
-
-    setRoom(null);
+  const removeRoom = () => {
     localStorage.removeItem("duoplay_room");
+    setRoom(null);
   };
+  
 
   return (
-    <RoomContext.Provider value={{ room, createRoom, joinRoom, leaveRoom }}>
+    <RoomContext.Provider value={{ room, saveRoom, removeRoom }}>
       {children}
     </RoomContext.Provider>
   );

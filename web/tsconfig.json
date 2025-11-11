@@ -13,7 +13,8 @@
       "@components/*": ["src/components/*"],
       "@pages/*": ["src/pages/*"],
       "@utils/*": ["src/utils/*"],
-      "@types/*": ["src/types/*"]
+      "@types/*": ["src/types/*"],
+      "@services/*": ["src/services/*"]
     }
   }
 }

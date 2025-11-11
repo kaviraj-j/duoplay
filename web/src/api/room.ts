@@ -19,7 +19,7 @@ export const roomApi = {
   leaveRoom: (roomID: string) => {
     // Disconnect WebSocket when leaving room
     wsManager.disconnect(roomID);
-    return api.post(`/room/leave/${roomID}`);
+    return api.get(`/room/${roomID}/leave`);
   },
 
   // WebSocket utility methods
