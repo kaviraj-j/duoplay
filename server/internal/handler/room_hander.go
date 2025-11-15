@@ -283,11 +283,25 @@ func (h *RoomHandler) LeaveRoom(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"type": "error", "message": "Room ID is required", "data": nil})
 		return
 	}
+	userInterface, exists := c.Get(middleware.AuthorizationPayloadKey)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"type": "error", "message": "Unauthorized", "data": nil})
+		return
+	}
+	user := userInterface.(*model.User)
+	// Get the other user's connection
+	room, _ := h.roomService.GetRoom(c, roomID)
+	oppositePlayer, _ := h.roomService.GetOppositePlayer(c, room.Players, user.ID)
 
 	if err := h.roomService.LeaveRoom(c, roomID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"type": "error", "message": "Failed to leave room", "data": nil})
 		return
 	}
+
+	oppositePlayer.Conn.WriteJSON(WSMessage{
+		Type:    "opponent_left",
+		Message: "Opponent has left the room",
+	})
 
 	c.JSON(http.StatusOK, gin.H{"type": "success", "message": "Left room", "data": nil})
 }
