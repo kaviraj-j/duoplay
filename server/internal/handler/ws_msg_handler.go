@@ -25,13 +25,13 @@ func (h *RoomHandler) handleWebSocketMessages(c *gin.Context, conn *websocket.Co
 			conn.WriteJSON(WSMessage{Type: "error", Message: "Invalid message format", Data: nil})
 			continue
 		}
-
-		typeVal, ok := msg["type"].(model.MessageType)
+		typeStr, ok := msg["type"].(string)
 		if !ok {
-			conn.WriteJSON(WSMessage{Type: "error", Message: "Missing message type", Data: nil})
+			conn.WriteJSON(WSMessage{Type: "error", Message: "Missing or invalid message type", Data: nil})
 			continue
 		}
 
+		typeVal := model.MessageType(typeStr)
 		switch typeVal {
 		// when a player joins a room
 		case model.MessageTypeJoinRoom:

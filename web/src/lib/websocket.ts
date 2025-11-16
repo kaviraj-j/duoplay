@@ -9,6 +9,7 @@ export interface IWebSocketManager {
   createRoomConnection(messageHandler?: (event: MessageEvent) => void): Promise<{ roomId: string; ws: WebSocket }>;
   joinRoom(roomId: string, messageHandler?: (event: MessageEvent) => void): Promise<{ roomId: string; ws: WebSocket }>;
   setMessageHandler(roomId: string, handler: (event: MessageEvent) => void): void;
+  sendMessage(roomId: string, message: any): void;
 }
 
 // WebSocket connection manager implementation
@@ -178,6 +179,15 @@ class WebSocketManager implements IWebSocketManager {
         reject(new Error("Connection timeout"));
       }, 10000);
     });
+  }
+
+  sendMessage(roomId: string, message: any): void {
+    const ws = this.connections.get(roomId);
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(message));
+    } else {
+      console.error(`WebSocket for room ${roomId} is not connected.`);
+    }
   }
 }
 
