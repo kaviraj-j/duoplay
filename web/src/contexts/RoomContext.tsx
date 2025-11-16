@@ -17,8 +17,6 @@ const RoomContext = createContext<RoomContextType | undefined>(undefined);
 export const RoomProvider = ({ children }: { children: ReactNode }) => {
   const [room, setRoom] = useState<Room | null>(null);
 
-  // Set up WebSocket message handlers with room context
-  useRoomWebSocketHandler();
 
   useEffect(() => {
     const fetchRoom = async (roomID: string): Promise<Room | null> => {
@@ -66,6 +64,8 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
       return updatedRoom;
     });
   };
+
+  useRoomWebSocketHandler({ removeRoom, saveRoom, updateRoom, room });
 
   return (
     <RoomContext.Provider value={{ room, saveRoom, removeRoom, updateRoom }}>

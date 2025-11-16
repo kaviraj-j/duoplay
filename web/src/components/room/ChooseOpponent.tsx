@@ -21,8 +21,8 @@ const ChooseOpponent = () => {
   const [roomId, setRoomId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
-  const { saveRoom } = useRoom();
-  const createHandler = useRoomWebSocketHandler();
+  const { saveRoom, removeRoom, updateRoom, room } = useRoom();
+  const createHandler = useRoomWebSocketHandler({ removeRoom, saveRoom, updateRoom, room });
 
   const handleOpen = () => setOpen(true);
   const handleClose = () => {
