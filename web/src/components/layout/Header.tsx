@@ -22,8 +22,7 @@ const Header = () => {
           <div>
             {room ? (
               <div className="flex items-center gap-4">
-                <span>Room: {room.id}</span>
-                <LeaveRoomButton roomId={room.id} />
+                <LeaveRoomButton />
               </div>
             ) : (
               <ChooseOpponent />

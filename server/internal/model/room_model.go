@@ -72,11 +72,16 @@ type Room struct {
 	Status        RoomStatus         `json:"status"`
 	EventChannel  chan Event         `json:"event_channel"`
 }
+
+type RoomPlayer struct {
+	User User `json:"user"`
+}
+
 type RoomResponse struct {
-	ID            string              `json:"id"`
-	Players       map[string]string   `json:"players"` // just send IDs or names
-	Status        RoomStatus          `json:"status"`
-	GameSelection map[string]GameType `json:"game_selection"`
+	ID            string                `json:"id"`
+	Players       map[string]RoomPlayer `json:"players"`
+	Status        RoomStatus            `json:"status"`
+	GameSelection map[string]GameType   `json:"game_selection"`
 }
 
 func NewRoom() Room {
@@ -92,9 +97,11 @@ func NewRoom() Room {
 }
 
 func (r Room) GetRoomResponse() RoomResponse {
-	players := make(map[string]string)
+	players := make(map[string]RoomPlayer)
 	for id, p := range r.Players {
-		players[id] = p.User.ID
+		players[id] = RoomPlayer{
+			User: p.User,
+		}
 	}
 
 	return RoomResponse{
