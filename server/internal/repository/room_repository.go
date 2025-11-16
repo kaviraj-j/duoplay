@@ -58,12 +58,16 @@ func (roomRepository *inMemoryRoomRepository) AddPlayerToRoom(ctx context.Contex
 	if !ok {
 		return ErrRoomNotFound
 	}
-	// add user to room
+	// Check if player already exists (for reconnection)
+	if existingPlayer, exist := room.Players[player.User.ID]; exist {
+		// Player already in room - update their connection (reconnection scenario)
+		existingPlayer.Conn = player.Conn
+		room.Players[player.User.ID] = existingPlayer
+		return nil
+	}
+	// add new user to room
 	if len(room.Players) >= 2 {
 		return errors.New("player limit exceeded to join room")
-	}
-	if _, exist := room.Players[player.User.ID]; exist {
-		return errors.New("player has already joined room")
 	}
 	room.Players[player.User.ID] = player
 	return nil

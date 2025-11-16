@@ -157,33 +157,78 @@ class WebSocketManager implements IWebSocketManager {
     const ws = new WebSocket(wsUrl);
 
     return new Promise((resolve, reject) => {
-      // Wait for connection to open FIRST
-      ws.addEventListener("open", () => {
-        // Add message handler if provided
-        if (messageHandler) {
-          ws.addEventListener("message", messageHandler);
-          this.messageHandlers.set(roomId, messageHandler);
+      let isResolved = false;
+      const timeout = setTimeout(() => {
+        if (!isResolved) {
+          isResolved = true;
+          reject(new Error("Connection timeout"));
         }
-        
-        this.addConnection(roomId, ws);
-        resolve({ roomId, ws });
+      }, 10000);
+
+      ws.addEventListener("open", () => {
+
+        const tmpListener = (event: MessageEvent) => {
+          if (isResolved) return;
+          
+          try {
+            const data = JSON.parse(event.data);
+
+            if (data.type === "joined_room" || data.type === "room_joined") {
+              // Server confirmed the join was successful
+              isResolved = true;
+              ws.removeEventListener("message", tmpListener);
+
+              // Set the message handler if provided
+              if (messageHandler) {
+                ws.addEventListener("message", messageHandler);
+                this.messageHandlers.set(roomId, messageHandler);
+              }
+
+              this.addConnection(roomId, ws);
+              clearTimeout(timeout);
+              resolve({ roomId, ws });
+            } else if (data.type === "error") {
+              isResolved = true;
+              clearTimeout(timeout);
+              ws.removeEventListener("message", tmpListener);
+              ws.close();
+              reject(new Error(data.message || "Failed to join room"));
+            }
+          } catch (error) {
+            if (isResolved) return;
+            console.error(error);
+            isResolved = true;
+            clearTimeout(timeout);
+            ws.removeEventListener("message", tmpListener);
+            reject(new Error("Failed to parse server response"));
+          }
+        };
+
+        ws.addEventListener("message", tmpListener);
       });
 
       ws.addEventListener("error", (error) => {
+        if (isResolved) return;
         console.error("WebSocket error:", error);
+        isResolved = true;
+        clearTimeout(timeout);
         reject(new Error("WebSocket connection failed"));
       });
 
-      // Timeout after 10 seconds
-      setTimeout(() => {
-        reject(new Error("Connection timeout"));
-      }, 10000);
+      ws.addEventListener("close", (event) => {
+        // If connection closes before we receive confirmation, reject the promise
+        if (!isResolved) {
+          isResolved = true;
+          clearTimeout(timeout);
+          reject(new Error(`Connection closed unexpectedly: ${event.code} ${event.reason || "Unknown reason"}`));
+        }
+      });
     });
   }
 
   sendMessage(roomId: string, message: any): void {
     const ws = this.connections.get(roomId);
-    if (ws && ws.readyState === WebSocket.OPEN) {
+        if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(message));
     } else {
       console.error(`WebSocket for room ${roomId} is not connected.`);
