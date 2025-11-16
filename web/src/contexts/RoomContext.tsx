@@ -4,11 +4,19 @@ import { roomApi } from "@/api"; // You should have these API functions implemen
 import type { Room } from "@/types";
 import { useRoomWebSocketHandler } from "@/hooks/useRoomWebSocketHandler";
 
+export interface GameChoiceData {
+  game_type: string;
+  player_id: string;
+  player_name: string;
+}
+
 type RoomContextType = {
   room: Room | null;
   saveRoom: (room: Room) => void;
   removeRoom: () => void;
   updateRoom: (updates: Partial<Room>) => void;
+  pendingGameChoice: GameChoiceData | null;
+  setPendingGameChoice: (choice: GameChoiceData | null) => void;
 };
 
 
@@ -16,6 +24,7 @@ const RoomContext = createContext<RoomContextType | undefined>(undefined);
 
 export const RoomProvider = ({ children }: { children: ReactNode }) => {
   const [room, setRoom] = useState<Room | null>(null);
+  const [pendingGameChoice, setPendingGameChoice] = useState<GameChoiceData | null>(null);
 
 
   useEffect(() => {
@@ -65,10 +74,10 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  useRoomWebSocketHandler({ removeRoom, saveRoom, updateRoom, room });
+  useRoomWebSocketHandler({ removeRoom, saveRoom, updateRoom, room, setPendingGameChoice });
 
   return (
-    <RoomContext.Provider value={{ room, saveRoom, removeRoom, updateRoom }}>
+    <RoomContext.Provider value={{ room, saveRoom, removeRoom, updateRoom, pendingGameChoice, setPendingGameChoice }}>
       {children}
     </RoomContext.Provider>
   );

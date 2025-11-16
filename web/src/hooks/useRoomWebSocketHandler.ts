@@ -3,6 +3,7 @@ import { createRoomMessageHandler } from "@/handlers/roomHandler";
 import { wsManager } from "@/lib/websocket";
 import { roomApi } from "@/api";
 import type { Room } from "@/types";
+import type { GameChoiceData } from "@/contexts/RoomContext";
 
 
 export const useRoomWebSocketHandler = ({
@@ -10,19 +11,22 @@ export const useRoomWebSocketHandler = ({
   saveRoom,
   updateRoom,
   room,
+  setPendingGameChoice,
 }: {
   removeRoom: () => void;
   saveRoom: (room: Room) => void;
   updateRoom: (updates: Partial<Room>) => void;
   room: Room | null;
+  setPendingGameChoice?: (choice: GameChoiceData | null) => void;
 }) => {
   const createHandler = useCallback(() => {
     return createRoomMessageHandler({
       removeRoom,
       saveRoom,
       updateRoom,
+      setPendingGameChoice,
     });
-  }, [removeRoom, saveRoom, updateRoom]);
+  }, [removeRoom, saveRoom, updateRoom, setPendingGameChoice]);
 
   const isReconnectingRef = useRef(false);
 

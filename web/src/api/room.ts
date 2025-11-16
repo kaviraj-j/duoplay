@@ -56,6 +56,20 @@ export const roomApi = {
     });
   },
 
+  acceptGame: (roomId: string, gameType: string) => {
+    return wsManager.sendMessage(roomId, {
+      type: "game_accept",
+      game_type: gameType,
+    });
+  },
+
+  rejectGame: (roomId: string, gameType: string) => {
+    return wsManager.sendMessage(roomId, {
+      type: "game_reject",
+      game_type: gameType,
+    });
+  },
+
   sendMessage: (roomId: string, message: any): void => {
     return wsManager.sendMessage(roomId, message);
   },
