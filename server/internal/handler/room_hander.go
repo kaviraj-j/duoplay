@@ -291,17 +291,19 @@ func (h *RoomHandler) LeaveRoom(c *gin.Context) {
 	user := userInterface.(*model.User)
 	// Get the other user's connection
 	room, _ := h.roomService.GetRoom(c, roomID)
-	oppositePlayer, _ := h.roomService.GetOppositePlayer(c, room.Players, user.ID)
+	oppositePlayer, err := h.roomService.GetOppositePlayer(c, room.Players, user.ID)
 
 	if err := h.roomService.LeaveRoom(c, roomID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"type": "error", "message": "Failed to leave room", "data": nil})
 		return
 	}
 
-	oppositePlayer.Conn.WriteJSON(WSMessage{
-		Type:    "opponent_left",
-		Message: "Opponent has left the room",
-	})
+	if err == nil {
+		oppositePlayer.Conn.WriteJSON(WSMessage{
+			Type:    "opponent_left",
+			Message: "Opponent has left the room",
+		})
+	}
 
 	c.JSON(http.StatusOK, gin.H{"type": "success", "message": "Left room", "data": nil})
 }
