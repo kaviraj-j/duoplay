@@ -14,6 +14,7 @@ import { roomApi } from "@/api/room";
 import constants from "@/contants";
 import { ContentCopy } from "@mui/icons-material";
 import { useRoom } from "@/contexts/RoomContext";
+import { useRoomWebSocketHandler } from "@/hooks/useRoomWebSocketHandler";
 
 const ChooseOpponent = () => {
   const [open, setOpen] = useState(false);
@@ -21,6 +22,7 @@ const ChooseOpponent = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const { saveRoom } = useRoom();
+  const createHandler = useRoomWebSocketHandler();
 
   const handleOpen = () => setOpen(true);
   const handleClose = () => {
@@ -49,7 +51,9 @@ const ChooseOpponent = () => {
   const handlePlayWithFriend = async () => {
     try {
       setIsCreating(true);
-      const { roomId: newRoomId } = await roomApi.createRoom();
+      // Create handler with current room context and pass it to createRoom
+      const handler = createHandler();
+      const { roomId: newRoomId } = await roomApi.createRoom(handler);
       setRoomId(newRoomId);
     } catch (error) {
       console.error("Failed to create room:", error);

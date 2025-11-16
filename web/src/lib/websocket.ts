@@ -1,5 +1,3 @@
-import { messageHandler } from "@/handlers/roomHandler";
-
 // WebSocket connection manager interface
 export interface IWebSocketManager {
   connect(roomId: string, token?: string): WebSocket;
@@ -8,13 +6,15 @@ export interface IWebSocketManager {
   isConnected(roomId: string): boolean;
   addConnection(roomId: string, ws: WebSocket): void;
   disconnectAll(): void;
-  createRoomConnection(): Promise<{ roomId: string; ws: WebSocket }>;
-  joinRoom(roomId: string): Promise<{ roomId: string; ws: WebSocket }>;
+  createRoomConnection(messageHandler?: (event: MessageEvent) => void): Promise<{ roomId: string; ws: WebSocket }>;
+  joinRoom(roomId: string, messageHandler?: (event: MessageEvent) => void): Promise<{ roomId: string; ws: WebSocket }>;
+  setMessageHandler(roomId: string, handler: (event: MessageEvent) => void): void;
 }
 
 // WebSocket connection manager implementation
 class WebSocketManager implements IWebSocketManager {
   private connections: Map<string, WebSocket> = new Map();
+  private messageHandlers: Map<string, (event: MessageEvent) => void> = new Map();
   private baseUrl: string;
 
   constructor() {
@@ -54,6 +54,7 @@ class WebSocketManager implements IWebSocketManager {
     if (ws) {
       ws.close();
       this.connections.delete(roomId);
+      this.messageHandlers.delete(roomId);
     }
   }
 
@@ -77,9 +78,25 @@ class WebSocketManager implements IWebSocketManager {
       ws.close();
     });
     this.connections.clear();
+    this.messageHandlers.clear();
   }
 
-  createRoomConnection(): Promise<{ roomId: string; ws: WebSocket }> {
+  // Set message handler for a room connection
+  setMessageHandler(roomId: string, handler: (event: MessageEvent) => void): void {
+    const ws = this.connections.get(roomId);
+    if (ws) {
+      // Remove old handler if exists
+      const oldHandler = this.messageHandlers.get(roomId);
+      if (oldHandler) {
+        ws.removeEventListener("message", oldHandler);
+      }
+      // Add new handler
+      ws.addEventListener("message", handler);
+      this.messageHandlers.set(roomId, handler);
+    }
+  }
+
+  createRoomConnection(messageHandler?: (event: MessageEvent) => void): Promise<{ roomId: string; ws: WebSocket }> {
     const token = localStorage.getItem("duoplay_token");
     const wsUrl = `${this.baseUrl}/room/join?token=${token}`;
     const ws = new WebSocket(wsUrl);
@@ -101,7 +118,11 @@ class WebSocketManager implements IWebSocketManager {
 
               ws.removeEventListener("message", tmpListener);
 
-              ws.addEventListener("message", messageHandler);
+              // Set the message handler if provided
+              if (messageHandler) {
+                ws.addEventListener("message", messageHandler);
+                this.messageHandlers.set(roomId, messageHandler);
+              }
 
               this.addConnection(roomId, ws);
               clearTimeout(timeout);
@@ -129,7 +150,7 @@ class WebSocketManager implements IWebSocketManager {
     });
   }
 
-  joinRoom(roomId: string): Promise<{ roomId: string; ws: WebSocket }> {
+  joinRoom(roomId: string, messageHandler?: (event: MessageEvent) => void): Promise<{ roomId: string; ws: WebSocket }> {
     const token = localStorage.getItem("duoplay_token");
     const wsUrl = `${this.baseUrl}/room/${roomId}/join?token=${token}`;
     const ws = new WebSocket(wsUrl);
@@ -137,11 +158,15 @@ class WebSocketManager implements IWebSocketManager {
     return new Promise((resolve, reject) => {
       // Wait for connection to open FIRST
       ws.addEventListener("open", () => {
+        // Add message handler if provided
+        if (messageHandler) {
+          ws.addEventListener("message", messageHandler);
+          this.messageHandlers.set(roomId, messageHandler);
+        }
+        
+        this.addConnection(roomId, ws);
         resolve({ roomId, ws });
       });
-
-      // NOW start listening for messages
-      ws.addEventListener("message", messageHandler);
 
       ws.addEventListener("error", (error) => {
         console.error("WebSocket error:", error);

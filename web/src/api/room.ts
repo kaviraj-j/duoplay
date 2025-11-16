@@ -7,12 +7,12 @@ export const roomApi = {
     return response.data.data;
   },
 
-  createRoom: async (): Promise<{ roomId: string; ws: WebSocket }> => {    
-    return wsManager.createRoomConnection();
+  createRoom: async (messageHandler?: (event: MessageEvent) => void): Promise<{ roomId: string; ws: WebSocket }> => {    
+    return wsManager.createRoomConnection(messageHandler);
   },
 
-  joinRoom: async (roomId: string): Promise<{ roomId: string; ws: WebSocket }> => {    
-    return wsManager.joinRoom(roomId);
+  joinRoom: async (roomId: string, messageHandler?: (event: MessageEvent) => void): Promise<{ roomId: string; ws: WebSocket }> => {    
+    return wsManager.joinRoom(roomId, messageHandler);
   },
   joinQueue: () => api.post("/room/queue"),
   leaveQueue: () => api.post("/room/leaveQueue"),

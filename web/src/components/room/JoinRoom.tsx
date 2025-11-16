@@ -3,12 +3,14 @@ import { useParams, useNavigate } from "react-router-dom";
 import { roomApi } from "@/api/room";
 import { useRoom } from "@/contexts/RoomContext";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
+import { useRoomWebSocketHandler } from "@/hooks/useRoomWebSocketHandler";
 
 const JoinRoom = () => {
   console.log("JoinRoom");
   const { roomUid } = useParams<{ roomUid: string }>();
   const navigate = useNavigate();
   const { saveRoom } = useRoom();
+  const createHandler = useRoomWebSocketHandler();
   const [isJoining, setIsJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,8 +25,11 @@ const JoinRoom = () => {
       setError(null);
 
       try {
-        // Call the API to join the room
-        const response = await roomApi.joinRoom(roomUid);
+        // Create handler with current room context and pass it to joinRoom
+        const handler = createHandler();
+        
+        // Call the API to join the room with handler
+        const response = await roomApi.joinRoom(roomUid, handler);
         
         if (response.roomId) {
           // Use the context to join the room

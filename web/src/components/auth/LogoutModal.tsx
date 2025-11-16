@@ -14,7 +14,7 @@ import { useRoom } from "@/contexts/RoomContext";
 export function LogoutModal() {
   const [isOpen, setIsOpen] = useState(false);
   const { logout } = useAuthContext();
-  const { leaveRoom } = useRoom();
+  const { removeRoom } = useRoom();
 
   return (
     <>
@@ -55,7 +55,7 @@ export function LogoutModal() {
             color="primary"
             onClick={() => {
               logout();
-              leaveRoom();
+              removeRoom();
             }}
           >
             Confirm
