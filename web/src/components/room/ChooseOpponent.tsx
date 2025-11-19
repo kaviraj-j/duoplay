@@ -10,6 +10,7 @@ import {
   Tooltip,
 } from "@mui/material";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { roomApi } from "@/api/room";
 import constants from "@/contants";
 import { ContentCopy } from "@mui/icons-material";
@@ -21,8 +22,9 @@ const ChooseOpponent = () => {
   const [roomId, setRoomId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const navigate = useNavigate();
   const { saveRoom, removeRoom, updateRoom, room } = useRoom();
-  const createHandler = useRoomWebSocketHandler({ removeRoom, saveRoom, updateRoom, room });
+  const createHandler = useRoomWebSocketHandler({ removeRoom, saveRoom, updateRoom, room, navigate });
 
   const handleOpen = () => setOpen(true);
   const handleClose = () => {

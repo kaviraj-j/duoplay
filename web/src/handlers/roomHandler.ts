@@ -7,6 +7,7 @@ export type RoomMessageHandlerCallbacks = {
   saveRoom?: (room: Room) => void;
   updateRoom?: (updates: Partial<Room>) => void;
   setPendingGameChoice?: (choice: GameChoiceData | null) => void;
+  navigate?: (path: string) => void;
 };
 
 export const createRoomMessageHandler = (
@@ -66,6 +67,13 @@ export const createRoomMessageHandler = (
           // Clear pending game choice when game is accepted or rejected
           if (callbacks.setPendingGameChoice) {
             callbacks.setPendingGameChoice(null);
+          }
+          break;
+
+        case "start_game":
+          // Navigate to the game page when game starts
+          if (data.game_type && callbacks.navigate) {
+            callbacks.navigate(`/game/${data.game_type}`);
           }
           break;
 

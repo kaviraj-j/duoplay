@@ -15,30 +15,28 @@ function AppContent() {
 
   return (
     <>
-      <BrowserRouter>
-        <Routes>
-          <Route element={<Layout />}>
-            <Route path="/" element={<HomePage />}></Route>
-            <Route
-              path="/room/:roomUid/join"
-              element={
-                <ProtectedRoute>
-                  <JoinRoom />
-                </ProtectedRoute>
-              }
-            ></Route>
-            <Route
-              path="/game/:gameName"
-              element={
-                <ProtectedRoute>
-                  <GamePage />
-                </ProtectedRoute>
-              }
-            ></Route>
-            <Route path="/*" element={<HomePage />}></Route>
-          </Route>
-        </Routes>
-      </BrowserRouter>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route path="/" element={<HomePage />}></Route>
+          <Route
+            path="/room/:roomUid/join"
+            element={
+              <ProtectedRoute>
+                <JoinRoom />
+              </ProtectedRoute>
+            }
+          ></Route>
+          <Route
+            path="/game/:gameName"
+            element={
+              <ProtectedRoute>
+                <GamePage />
+              </ProtectedRoute>
+            }
+          ></Route>
+          <Route path="/*" element={<HomePage />}></Route>
+        </Route>
+      </Routes>
       <GameChoiceModal
         open={pendingGameChoice !== null}
         gameChoice={pendingGameChoice}
@@ -52,11 +50,13 @@ function App() {
   return (
     <>
       <Toaster position="top-center" />
-      <AuthProvider>
-        <RoomProvider>
-          <AppContent />
-        </RoomProvider>
-      </AuthProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          <RoomProvider>
+            <AppContent />
+          </RoomProvider>
+        </AuthProvider>
+      </BrowserRouter>
     </>
   );
 }

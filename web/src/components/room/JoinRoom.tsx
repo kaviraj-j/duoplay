@@ -10,7 +10,7 @@ const JoinRoom = () => {
   const { roomUid } = useParams<{ roomUid: string }>();
   const navigate = useNavigate();
   const { saveRoom, removeRoom, updateRoom, room } = useRoom();
-  const createHandler = useRoomWebSocketHandler({ removeRoom, saveRoom, updateRoom, room });
+  const createHandler = useRoomWebSocketHandler({ removeRoom, saveRoom, updateRoom, room, navigate });
   const [isJoining, setIsJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

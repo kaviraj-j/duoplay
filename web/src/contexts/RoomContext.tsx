@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import { roomApi } from "@/api"; // You should have these API functions implemented
 import type { Room } from "@/types";
 import { useRoomWebSocketHandler } from "@/hooks/useRoomWebSocketHandler";
@@ -25,6 +26,7 @@ const RoomContext = createContext<RoomContextType | undefined>(undefined);
 export const RoomProvider = ({ children }: { children: ReactNode }) => {
   const [room, setRoom] = useState<Room | null>(null);
   const [pendingGameChoice, setPendingGameChoice] = useState<GameChoiceData | null>(null);
+  const navigate = useNavigate();
 
 
   useEffect(() => {
@@ -74,7 +76,7 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
-  useRoomWebSocketHandler({ removeRoom, saveRoom, updateRoom, room, setPendingGameChoice });
+  useRoomWebSocketHandler({ removeRoom, saveRoom, updateRoom, room, setPendingGameChoice, navigate });
 
   return (
     <RoomContext.Provider value={{ room, saveRoom, removeRoom, updateRoom, pendingGameChoice, setPendingGameChoice }}>

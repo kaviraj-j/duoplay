@@ -12,12 +12,14 @@ export const useRoomWebSocketHandler = ({
   updateRoom,
   room,
   setPendingGameChoice,
+  navigate,
 }: {
   removeRoom: () => void;
   saveRoom: (room: Room) => void;
   updateRoom: (updates: Partial<Room>) => void;
   room: Room | null;
   setPendingGameChoice?: (choice: GameChoiceData | null) => void;
+  navigate?: (path: string) => void;
 }) => {
   const createHandler = useCallback(() => {
     return createRoomMessageHandler({
@@ -25,8 +27,9 @@ export const useRoomWebSocketHandler = ({
       saveRoom,
       updateRoom,
       setPendingGameChoice,
+      navigate,
     });
-  }, [removeRoom, saveRoom, updateRoom, setPendingGameChoice]);
+  }, [removeRoom, saveRoom, updateRoom, setPendingGameChoice, navigate]);
 
   const isReconnectingRef = useRef(false);
 
