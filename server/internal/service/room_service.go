@@ -273,6 +273,24 @@ func (s *RoomService) HandleGameChosen(ctx context.Context, room *model.Room, pl
 		if err != nil {
 			return err
 		}
+		fmt.Println("Before sending msg to both")
+		fmt.Println(map[string]interface{}{
+			"type": model.MessageTypeStartGame,
+			// "message": "Start the game now",
+			"game_type": gameType,
+		})
+		// send message to both to start the game
+		player.Conn.WriteJSON(map[string]interface{}{
+			"type": model.MessageTypeStartGame,
+			// "message": "Start the game now",
+			"game_type": gameType,
+		})
+		oppositePlayer.Conn.WriteJSON(map[string]interface{}{
+			"type": model.MessageTypeStartGame,
+			// "message": "Start the game now",
+			"game_type": gameType,
+		})
+
 	}
 
 	return nil
@@ -310,6 +328,8 @@ func (s *RoomService) HandleGameAccepted(ctx context.Context, room *model.Room, 
 			"message": "Your opponent has accepted the game.",
 		})
 	}
+
+	// time.Sleep
 
 	return nil
 }

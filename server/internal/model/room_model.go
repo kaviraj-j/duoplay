@@ -21,6 +21,7 @@ const (
 	MessageTypeGameAccepted    MessageType = "game_accepted"
 	MessageTypeGameReject      MessageType = "game_reject"
 	MessageTypeGameRejected    MessageType = "game_rejected"
+	MessageTypeStartGame       MessageType = "start_game"
 	MessageTypeMoveMade        MessageType = "move_made"
 	MessageTypeReplayGame      MessageType = "replay_game"
 	MessageTypeReplayAccepted  MessageType = "replay_accepted"
