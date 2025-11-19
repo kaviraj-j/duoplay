@@ -273,24 +273,6 @@ func (s *RoomService) HandleGameChosen(ctx context.Context, room *model.Room, pl
 		if err != nil {
 			return err
 		}
-		fmt.Println("Before sending msg to both")
-		fmt.Println(map[string]interface{}{
-			"type": model.MessageTypeStartGame,
-			// "message": "Start the game now",
-			"game_type": gameType,
-		})
-		// send message to both to start the game
-		player.Conn.WriteJSON(map[string]interface{}{
-			"type": model.MessageTypeStartGame,
-			// "message": "Start the game now",
-			"game_type": gameType,
-		})
-		oppositePlayer.Conn.WriteJSON(map[string]interface{}{
-			"type": model.MessageTypeStartGame,
-			// "message": "Start the game now",
-			"game_type": gameType,
-		})
-
 	}
 
 	return nil
@@ -327,9 +309,31 @@ func (s *RoomService) HandleGameAccepted(ctx context.Context, room *model.Room, 
 			"type":    model.MessageTypeGameAccepted,
 			"message": "Your opponent has accepted the game.",
 		})
+		if err != nil {
+			return err
+		}
 	}
 
-	// time.Sleep
+	// Send start_game message to both players when game is accepted
+	if player.Conn != nil {
+		err = player.Conn.WriteJSON(map[string]interface{}{
+			"type":      model.MessageTypeStartGame,
+			"game_type": gameType,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	if oppositePlayer.Conn != nil {
+		err = oppositePlayer.Conn.WriteJSON(map[string]interface{}{
+			"type":      model.MessageTypeStartGame,
+			"game_type": gameType,
+		})
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
