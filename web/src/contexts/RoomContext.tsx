@@ -85,6 +85,7 @@ export const RoomProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useRoom = () => {
   const context = useContext(RoomContext);
   if (!context) {
