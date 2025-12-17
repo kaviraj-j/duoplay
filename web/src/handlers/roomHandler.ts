@@ -1,6 +1,7 @@
 import { toastService } from "@/services/toastService";
 import type { Room } from "@/types";
 import type { GameChoiceData } from "@/contexts/RoomContext";
+import { roomApi } from "@/api";
 
 export type RoomMessageHandlerCallbacks = {
   removeRoom: () => void;
@@ -74,6 +75,22 @@ export const createRoomMessageHandler = (
           // Navigate to the game page when game starts
           if (data.game_type && callbacks.navigate) {
             callbacks.navigate(`/game/${data.game_type}`);
+          }
+          if (data.data && callbacks.updateRoom) {
+            callbacks.updateRoom(data.data as Room);
+          } else {
+            roomApi.getRoom(data.room_id).then((res) => {
+              if (callbacks.updateRoom) {
+                callbacks.updateRoom(res);
+              }
+            });
+          }
+          break;
+
+        case "move_made":
+          // Update room with new game state after a move
+          if (data.data && callbacks.updateRoom) {
+            callbacks.updateRoom(data.data as Room);
           }
           break;
 

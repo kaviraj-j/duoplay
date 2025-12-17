@@ -3,6 +3,7 @@ package tictactoe
 import (
 	"crypto/rand"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -19,13 +20,18 @@ func getRandomId(max int) string {
 }
 
 type TicTacToeState struct {
-	Board         [3][3]string
-	CurrentPlayer string
+	Board         [3][3]string `json:"Board"`
+	CurrentPlayer string       `json:"CurrentPlayer"`
 }
 
 type TicTacToe struct {
 	state     *model.GameState
 	gameState TicTacToeState
+}
+
+type Move struct {
+	Row int `json:"row"`
+	Col int `json:"col"`
 }
 
 func NewTicTacToe() model.Game {
@@ -77,22 +83,24 @@ func (t *TicTacToe) MakeMove(playerID string, move any) error {
 	if playerID != t.gameState.CurrentPlayer {
 		return fmt.Errorf("not your turn")
 	}
-
-	moveData, ok := move.(map[string]int)
-	if !ok {
-		return fmt.Errorf("invalid move format")
+	var moveData Move
+	moveBytes, err := json.Marshal(move)
+	if err != nil {
+		return err
+	}
+	if err := json.Unmarshal(moveBytes, &moveData); err != nil {
+		return err
 	}
 
-	row, col := moveData["row"], moveData["col"]
-	if row < 0 || row > 2 || col < 0 || col > 2 {
-		return fmt.Errorf("invalid position")
+	if moveData.Row < 0 || moveData.Row > 2 || moveData.Col < 0 || moveData.Col > 2 {
+		return fmt.Errorf("invalid move")
 	}
-	if t.gameState.Board[row][col] != "" {
+
+	if t.gameState.Board[moveData.Row][moveData.Col] != "" {
 		return fmt.Errorf("position already taken")
 	}
 
-	// Make the move
-	t.gameState.Board[row][col] = playerID
+	t.gameState.Board[moveData.Row][moveData.Col] = playerID
 
 	// Switch player
 	for pid := range t.state.Players {
@@ -199,4 +207,9 @@ func (t *TicTacToe) GetWinner() *model.Player {
 
 func (t *TicTacToe) GetStatus() model.GameStatus {
 	return t.state.Status
+}
+
+// SetPlayers sets the players for the game
+func (t *TicTacToe) SetPlayers(players map[string]model.Player) {
+	t.state.Players = players
 }

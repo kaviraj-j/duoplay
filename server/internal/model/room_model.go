@@ -83,6 +83,13 @@ type RoomResponse struct {
 	Players       map[string]RoomPlayer `json:"players"`
 	Status        RoomStatus            `json:"status"`
 	GameSelection map[string]GameType   `json:"game_selection"`
+	Game          *GameResponse         `json:"game,omitempty"`
+}
+
+type GameResponse struct {
+	Type   GameType    `json:"type"`
+	Status GameStatus  `json:"status"`
+	State  interface{} `json:"state"`
 }
 
 func NewRoom() Room {
@@ -105,10 +112,21 @@ func (r Room) GetRoomResponse() RoomResponse {
 		}
 	}
 
-	return RoomResponse{
+	response := RoomResponse{
 		ID:            r.ID,
 		Players:       players,
 		Status:        r.Status,
 		GameSelection: r.GameSelection.PlayerChoices,
 	}
+
+	// Include game information if game exists
+	if r.Game != nil {
+		response.Game = &GameResponse{
+			Type:   r.Game.GetType(),
+			Status: r.Game.GetStatus(),
+			State:  r.Game.GetState(),
+		}
+	}
+
+	return response
 }

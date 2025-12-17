@@ -181,20 +181,52 @@ func (h *RoomHandler) handleGameMove(c *gin.Context, conn *websocket.Conn, roomI
 		return
 	}
 
+	if room.Game == nil {
+		conn.WriteJSON(WSMessage{Type: "error", Message: "Game not started", Data: nil})
+		return
+	}
+
 	move, ok := msg["move"]
 	if !ok {
 		conn.WriteJSON(WSMessage{Type: "error", Message: "Move is required", Data: nil})
 		return
 	}
 
-	room.Game.MakeMove(player.User.ID, move)
+	// Make the move
+	if err := room.Game.MakeMove(player.User.ID, move); err != nil {
+		conn.WriteJSON(WSMessage{Type: "error", Message: err.Error(), Data: nil})
+		return
+	}
 
-	// Get the game type from the parsed message
-	conn.WriteJSON(WSMessage{
-		Type:    "move_received",
-		Message: "Move received, processing...",
-		Data:    nil,
-	})
+	// Update room status if game is over
+	if room.Game.IsGameOver() {
+		room.Status = model.RoomStatusGameOver
+		roomResponse := room.GetRoomResponse()
+		room.EventChannel <- model.Event{
+			Type:    model.RoomEventTypeGameOver,
+			Payload: roomResponse,
+		}
+	}
+
+	// Update room in repository
+	if err := h.roomService.UpdateRoom(c, *room); err != nil {
+		conn.WriteJSON(WSMessage{Type: "error", Message: "Failed to update room", Data: nil})
+		return
+	}
+
+	// Get updated room response with game state
+	roomResponse := room.GetRoomResponse()
+
+	// Broadcast the move to both players
+	for _, p := range room.Players {
+		if p.Conn != nil {
+			p.Conn.WriteJSON(WSMessage{
+				Type:    string(model.MessageTypeMoveMade),
+				Message: "Move made",
+				Data:    roomResponse,
+			})
+		}
+	}
 }
 
 func (h *RoomHandler) handleReplayGame(c *gin.Context, conn *websocket.Conn, roomID string, player model.Player, msg map[string]interface{}) {

@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/kaviraj-j/duoplay/internal/games"
 	"github.com/kaviraj-j/duoplay/internal/games/tictactoe"
 	"github.com/kaviraj-j/duoplay/internal/model"
 	"github.com/kaviraj-j/duoplay/internal/repository"
@@ -303,6 +304,42 @@ func (s *RoomService) HandleGameAccepted(ctx context.Context, room *model.Room, 
 	// Record the player's game acceptance
 	room.GameSelection.PlayerChoices[player.User.ID] = gameType
 
+	// Create a new game instance based on gameType
+	game, err := games.CreateGameFromName(string(gameType))
+	if err != nil {
+		return fmt.Errorf("failed to create game: %v", err)
+	}
+
+	// Set players on the game
+	if tttGame, ok := game.(*tictactoe.TicTacToe); ok {
+		// Create a players map without connections (game doesn't need connections)
+		gamePlayers := make(map[string]model.Player)
+		for playerID, p := range room.Players {
+			gamePlayers[playerID] = model.Player{
+				User: p.User,
+				Conn: nil, // Game doesn't need connections
+			}
+		}
+		tttGame.SetPlayers(gamePlayers)
+	}
+
+	// Start the game
+	if err := game.Start(); err != nil {
+		return fmt.Errorf("failed to start game: %v", err)
+	}
+
+	// Update the room with the new game
+	room.Game = game
+	room.Status = model.RoomStatusGameStarted
+
+	// Update room in repository
+	if err := s.UpdateRoom(ctx, *room); err != nil {
+		return fmt.Errorf("failed to update room: %v", err)
+	}
+
+	// Get room response with game state
+	roomResponse := room.GetRoomResponse()
+
 	// notify the opposite player about the game acceptance
 	if oppositePlayer.Conn != nil {
 		err = oppositePlayer.Conn.WriteJSON(map[string]interface{}{
@@ -314,11 +351,13 @@ func (s *RoomService) HandleGameAccepted(ctx context.Context, room *model.Room, 
 		}
 	}
 
-	// Send start_game message to both players when game is accepted
+	// Send start_game message to both players when game is accepted with room details
 	if player.Conn != nil {
 		err = player.Conn.WriteJSON(map[string]interface{}{
 			"type":      model.MessageTypeStartGame,
 			"game_type": gameType,
+			"room_id":   room.ID,
+			"data":      roomResponse,
 		})
 		if err != nil {
 			return err
@@ -329,6 +368,8 @@ func (s *RoomService) HandleGameAccepted(ctx context.Context, room *model.Room, 
 		err = oppositePlayer.Conn.WriteJSON(map[string]interface{}{
 			"type":      model.MessageTypeStartGame,
 			"game_type": gameType,
+			"room_id":   room.ID,
+			"data":      roomResponse,
 		})
 		if err != nil {
 			return err

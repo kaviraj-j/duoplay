@@ -73,4 +73,11 @@ export const roomApi = {
   sendMessage: (roomId: string, message: any): void => {
     return wsManager.sendMessage(roomId, message);
   },
+
+  sendMove: (roomId: string, move: { row: number; col: number }): void => {
+    return wsManager.sendMessage(roomId, {
+      type: "game_move",
+      move: move,
+    });
+  },
 };
